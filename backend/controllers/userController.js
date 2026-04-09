@@ -1,13 +1,13 @@
-const db = require('../config/db');
+const { findUserById, updateUserEmail } = require('../models/userModel');
 
 const getProfile = async (req, res) => {
     try {
-        const [users] = await db.query('SELECT u.username, u.email, r.role_name FROM User u JOIN Role r ON u.role_id = r.role_id WHERE u.user_id = ?', [req.user.user_id]);
-        if (users.length === 0) {
+        const user = await findUserById(req.user.user_id);
+        if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        res.json(users[0]);
+        res.json(user);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
@@ -17,7 +17,7 @@ const updateProfile = async (req, res) => {
     const { email } = req.body;
 
     try {
-        await db.query('UPDATE User SET email = ? WHERE user_id = ?', [email, req.user.user_id]);
+        await updateUserEmail(req.user.user_id, email);
         res.json({ message: 'Profile updated' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
