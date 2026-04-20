@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import RevealOnScroll from '../components/RevealOnScroll';
 
 const Home = () => {
   const { user } = useAuth();
@@ -33,38 +34,46 @@ const Home = () => {
       </section>
 
       {/* 4. About Section */}
-<section id="about" style={styles.aboutContainer}>
-  <div style={styles.aboutWrapper}>
-    
-    {/* Cột trái: Cụm ảnh */}
-    <div style={styles.aboutImageGrid}>
-      <div style={styles.bigImageWrapper}>
-        <img 
-          src="https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=1000" 
-          alt="Nhào bột" 
-          style={styles.imageLarge} 
-        />
-      </div>
-      <div style={styles.smallImagesColumn}>
-        <img 
-          src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?q=80&w=1000" 
-          alt="Bánh nướng" 
-          style={styles.imageSmall} 
-        />
-        <img 
-          src="https://images.unsplash.com/photo-1581339399838-2a120c18bba3?q=80&w=1000" 
-          alt="Lò nướng" 
-          style={styles.imageSmall} 
-        />
-      </div>
-    </div>
+      <RevealOnScroll>
+        <section id="about" style={styles.aboutContainer}>
+          <div style={styles.aboutWrapper}>
+            
+            {/* Cột trái: Cụm ảnh */}
+            <div style={styles.aboutImageGrid}>
+              <div style={styles.bigImageWrapper}>
+                <RevealOnScroll delay={0}>
+                  <img
+                    src="https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=1000"
+                    alt="Nhào bột"
+                    style={styles.imageLarge}
+                  />
+                </RevealOnScroll>
+              </div>
+              <div style={styles.smallImagesColumn}>
+                <RevealOnScroll delay={0.2}>
+                  <img
+                    src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?q=80&w=1000"
+                    alt="Bánh nướng"
+                    style={styles.imageSmall}
+                  />
+                </RevealOnScroll>
+                <RevealOnScroll delay={0.2}>
+                  <img
+                    src="https://images.unsplash.com/photo-1581339399838-2a120c18bba3?q=80&w=1000"
+                    alt="Lò nướng"
+                    style={styles.imageSmall}
+                  />
+                </RevealOnScroll>
+              </div>
+            </div>
 
     {/* Cột phải: Nội dung */}
-    <div style={styles.aboutTextContent}>
-      <h2 style={styles.brandTitle}>SCARLETT:</h2>
-      <h3 style={styles.brandSubtitle}>French Asian Bakery</h3>
-      
-      <span style={styles.overline}>OUR STORY</span>
+    <RevealOnScroll delay={0.6} style={{ flex: 1, minWidth: '350px' }}>
+      <div style={styles.aboutTextContent}>
+        <h2 style={styles.brandTitle}>SCARLETT:</h2>
+        <h3 style={styles.brandSubtitle}>French Asian Bakery</h3>
+
+        <span style={styles.overline}>OUR STORY</span>
       <h4 style={styles.storyTitle}>Freshly Baked, Everyday</h4>
       
       <p style={styles.storyDescription}>
@@ -76,68 +85,97 @@ const Home = () => {
       
       <Link to="/story" style={styles.readMoreBtn}>READ OUR STORY</Link>
     </div>
+    </RevealOnScroll>
   </div>
+  
 </section>
+      </RevealOnScroll>
 
       {/* 5. Gallery Section */}
-      <section id="gallery" style={styles.gallerySection}>
-        <div style={styles.sectionContent}>
-          <h2 style={styles.sectionTitle}>Hình ảnh cửa tiệm</h2>
-          <p style={styles.sectionText}>
+      <RevealOnScroll>
+        <section id="gallery" style={styles.gallerySection}>
+        <div style={styles.galleryContent}>
+          <h2 style={styles.galleryTitle}>Hình ảnh cửa tiệm</h2>
+          <p style={styles.galleryText}>
             Những khoảnh khắc bánh ngọt và không gian ấm áp tại Scarlett Bakery.
           </p>
           <div style={styles.galleryGrid}>
             <div style={styles.galleryCard}>
-              <img
-                src="https://images.unsplash.com/photo-1511689985-7e8e0f3cb15a?auto=format&fit=crop&w=900&q=80"
-                alt="Bakery scene 1"
-                style={styles.galleryImage}
-              />
-              <p style={styles.galleryLabel}>Sáng tạo mỗi ngày</p>
+              <RevealOnScroll delay={0.2}>
+                <img
+                  src="https://i.pinimg.com/736x/6f/08/5c/6f085cae5a03a942ca5fa952addcbdc4.jpg"
+                  alt="Bakery scene 1"
+                  style={styles.galleryImage}
+                />
+              </RevealOnScroll>
+              <p style={styles.galleryLabel}>Không gian ấm áp</p>
             </div>
             <div style={styles.galleryCard}>
-              <img
-                src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80"
-                alt="Bakery scene 2"
-                style={styles.galleryImage}
-              />
+              <RevealOnScroll delay={0.4}>
+                <img
+                  src="https://i.pinimg.com/736x/20/43/f4/2043f4c1bfc31b66bebb73794d380962.jpg"
+                  alt="Bakery scene 2"
+                  style={styles.galleryImage}
+                />
+              </RevealOnScroll>
               <p style={styles.galleryLabel}>Hương vị Pháp - Á Đông</p>
             </div>
             <div style={styles.galleryCard}>
-              <img
-                src="https://images.unsplash.com/photo-1544378738-6d9902e81e73?auto=format&fit=crop&w=900&q=80"
-                alt="Bakery scene 3"
-                style={styles.galleryImage}
-              />
-              <p style={styles.galleryLabel}>Không gian đón khách</p>
+              <RevealOnScroll delay={0.6}>
+                <img
+                  src="https://i.pinimg.com/1200x/1f/40/9c/1f409cb34bc8d1a0695b70381ef3690b.jpg"
+                  alt="Bakery scene 3"
+                  style={styles.galleryImage}
+                />
+              </RevealOnScroll>
+              <p style={styles.galleryLabel}>Bánh tươi mỗi ngày</p>
             </div>
           </div>
         </div>
       </section>
+      </RevealOnScroll>
 
       {/* 6. Specialties Section */}
-      <section id="specialties" style={styles.sectionDark}>
+      <RevealOnScroll>
+        <section id="specialties" style={styles.sectionDark}>
         <div style={styles.sectionContent}>
-          <h2 style={styles.sectionTitleLight}>Món đặc trưng của chúng tôi</h2>
+          <h2 style={styles.specialtiesTitle}>Món đặc trưng của chúng tôi</h2>
           <div style={styles.grid}>
             <div style={styles.card}>
-              <h3>French Croissant</h3>
-              <p>Vỏ giòn tan, nhân bơ thơm lừng và độ xốp hoàn hảo.</p>
+              <img
+                src="https://i.pinimg.com/736x/6d/c8/62/6dc8624fdcd12d9972a1486e00d7440b.jpg"
+                alt="French Croissant"
+                style={styles.specialtyImage}
+              />
+              <h3 style={styles.specialtyName}>French Croissant</h3>
+              <p style={styles.specialtyDescription}>Vỏ giòn tan, nhân bơ thơm lừng và độ xốp hoàn hảo.</p>
             </div>
             <div style={styles.card}>
-              <h3>Chocolate Tart</h3>
-              <p>Vị ngọt vừa phải, phủ chocolate đen đậm đà và caramel mềm mịn.</p>
+              <img
+                src="https://i.pinimg.com/1200x/ea/73/7f/ea737f6c7481e79675395df890d003fa.jpg"
+                alt="Chocolate Tart"
+                style={styles.specialtyImage}
+              />
+              <h3 style={styles.specialtyName}>Chocolate Tart</h3>
+              <p style={styles.specialtyDescription}>Vị ngọt vừa phải, phủ chocolate đen đậm đà và caramel mềm mịn.</p>
             </div>
             <div style={styles.card}>
-              <h3>Matcha Mille Crepe</h3>
-              <p>Lớp bánh mỏng xếp chồng hòa cùng trà xanh Nhật Bản thanh mát.</p>
+              <img
+                src="https://i.pinimg.com/1200x/fa/58/95/fa58951244c4d9beeab8427f5b84c539.jpg"
+                alt="Matcha Mille Crepe"
+                style={styles.specialtyImage}
+              />
+              <h3 style={styles.specialtyName}>Matcha Mille Crepe</h3>
+              <p style={styles.specialtyDescription}>Lớp bánh mỏng xếp chồng hòa cùng trà xanh Nhật Bản thanh mát.</p>
             </div>
           </div>
         </div>
       </section>
+      </RevealOnScroll>
 
       {/* 7. Testimonial Section */}
-      <section id="testimonial" style={styles.sectionLight}>
+      <RevealOnScroll>
+        <section id="testimonial" style={styles.sectionLight}>
         <div style={styles.sectionContent}>
           <h2 style={styles.sectionTitle}>Khách hàng nói gì</h2>
           <blockquote style={styles.quote}>
@@ -146,11 +184,72 @@ const Home = () => {
           <p style={styles.quoteAuthor}>- Hằng, khách thân thiết</p>
         </div>
       </section>
+      </RevealOnScroll>
 
       {/* 7. Footer */}
-      <footer style={styles.footer}>
-        <p>© 2026 Scarlett Bakery. Tất cả các quyền được bảo lưu.</p>
-      </footer>
+      <RevealOnScroll>
+        <footer style={styles.footer}>
+          <div style={styles.footerInner}>
+            {/* Cột trái: Thương hiệu & Social */}
+            <div style={styles.footerBrandBlock}>
+              <div style={styles.footerLogo}>
+                <span style={styles.footerLogoMain}>SCARLETT</span>
+                <span style={styles.footerLogoScript}>bakery</span>
+              </div>
+              <p style={styles.footerBrandDesc}>
+                Mang hương vị Pháp truyền thống đến gần hơn với tâm hồn Á Đông.
+              </p>
+              <div style={styles.socialRow}>
+                <a href="/" aria-label="Facebook" style={styles.socialIcon}>f</a>
+                <a href="/" aria-label="Instagram" style={styles.socialIcon}>◎</a>
+                <a href="/" aria-label="LinkedIn" style={styles.socialIcon}>in</a>
+              </div>
+            </div>
+
+            {/* Cột phải: Link điều hướng */}
+            <div style={styles.footerLinksGrid}>
+              <div style={styles.footerColumn}>
+                <h4 style={styles.footerTitle}>BAKERY</h4>
+                <a href="/" style={styles.footerLink}>Bread</a>
+                <a href="/" style={styles.footerLink}>Cake</a>
+                <a href="/" style={styles.footerLink}>Pastry</a>
+                <a href="/" style={styles.footerLink}>Menu</a>
+              </div>
+
+              <div style={styles.footerColumn}>
+                <h4 style={styles.footerTitle}>BEVERAGES</h4>
+                <a href="/" style={styles.footerLink}>Coffee</a>
+                <a href="/" style={styles.footerLink}>Tea & More</a>
+                <a href="/" style={styles.footerLink}>Blended</a>
+              </div>
+
+              <div style={styles.footerColumn}>
+                <h4 style={styles.footerTitle}>COMPANY</h4>
+                <a href="/" style={styles.footerLink}>Our Story</a>
+                <a href="/" style={styles.footerLink}>Locations</a>
+                <a href="/" style={styles.footerLink}>Careers</a>
+                <a href="/" style={styles.footerLink}>Contact Us</a>
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.footerDivider} />
+
+          <div style={styles.footerBottom}>
+            <div style={styles.footerBottomLeft}>
+              <span style={styles.footerCopy}>©2026 Scarlett Bakery. All Rights Reserved.</span>
+              <div style={styles.footerMetaLinks}>
+                <a href="/" style={styles.footerMetaLink}>Privacy Policy</a>
+                <a href="/" style={styles.footerMetaLink}>Terms of Use</a>
+                <a href="/" style={styles.footerMetaLink}>Cookie Notice</a>
+              </div>
+            </div>
+            <div style={styles.footerBottomRight}>
+              <div style={styles.footerOrder}>ORDER ONLINE NOW</div>
+            </div>
+          </div>
+        </footer>
+      </RevealOnScroll>
     </div>
   );
 };
@@ -336,6 +435,13 @@ const styles = {
     marginBottom: '20px',
     color: '#fff',
   },
+  specialtiesTitle: {
+    fontSize: '38px',
+    marginBottom: '24px',
+    color: '#fff',
+    fontFamily: "'Playfair Display', serif",
+    letterSpacing: '0.4px',
+  },
   sectionText: {
     fontSize: '18px',
     lineHeight: '1.8',
@@ -343,9 +449,34 @@ const styles = {
     maxWidth: '760px',
     margin: '0 auto',
   },
+  galleryTitle: {
+    fontSize: '42px',
+    marginBottom: '18px',
+    color: '#5a2118',
+    fontFamily: "'Playfair Display', serif",
+    letterSpacing: '0.4px',
+  },
+  galleryText: {
+    fontSize: '18px',
+    lineHeight: '1.8',
+    color: '#5c4d44',
+    maxWidth: '760px',
+    margin: '0 auto',
+    fontFamily: "'Manrope', sans-serif",
+  },
   gallerySection: {
     padding: '80px 24px',
-    backgroundColor: '#f7f2ec',
+    background: '#f4bf86 ',
+  },
+  galleryContent: {
+    maxWidth: '1100px',
+    margin: '0 auto',
+    textAlign: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.74)',
+    border: '1px solid rgba(166, 108, 73, 0.18)',
+    borderRadius: '28px',
+    padding: '42px 32px',
+    backdropFilter: 'blur(2px)',
   },
   galleryGrid: {
     display: 'grid',
@@ -368,10 +499,13 @@ const styles = {
   },
   galleryLabel: {
     padding: '18px 20px',
+    textAlign: 'center',
     margin: 0,
     color: '#4b3f35',
     fontWeight: '600',
     fontSize: '16px',
+    fontFamily: "'Manrope', sans-serif",
+    letterSpacing: '0.2px',
   },
   grid: {
     display: 'grid',
@@ -387,6 +521,28 @@ const styles = {
     color: '#1f1a17',
     border: '1px solid rgba(255,255,255,0.12)',
   },
+  specialtyImage: {
+    width: '100%',
+    height: '190px',
+    objectFit: 'cover',
+    borderRadius: '12px',
+    marginBottom: '16px',
+    display: 'block',
+  },
+  specialtyName: {
+    margin: '0 0 12px',
+    color: '#2b201a',
+    fontSize: '24px',
+    fontFamily: "'Playfair Display', serif",
+    letterSpacing: '0.3px',
+  },
+  specialtyDescription: {
+    margin: 0,
+    color: '#5a4a3f',
+    lineHeight: '1.75',
+    fontSize: '16px',
+    fontFamily: "'Manrope', sans-serif",
+  },
   quote: {
     fontSize: '22px',
     fontStyle: 'italic',
@@ -400,11 +556,134 @@ const styles = {
     fontWeight: '600',
   },
   footer: {
-    padding: '24px',
-    backgroundColor: '#111',
-    color: '#fff',
-    textAlign: 'center',
-  },
+  padding: '80px 24px 40px',
+  backgroundColor: '#410b0b', // Màu đỏ rượu đặc trưng
+  color: '#fff',
+},
+footerInner: {
+  maxWidth: '1200px',
+  margin: '0 auto',
+  display: 'grid',
+  gridTemplateColumns: '1fr 2fr', // Chia tỉ lệ 1:2
+  gap: '60px',
+  alignItems: 'start',
+},
+footerBrandBlock: {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '20px',
+},
+footerLogo: {
+  display: 'flex',
+  alignItems: 'baseline',
+  gap: '8px',
+  color: '#f7f2e8',
+},
+footerLogoMain: {
+  fontFamily: "'Playfair Display', serif",
+  fontSize: '42px',
+  fontWeight: '700',
+  letterSpacing: '2px',
+},
+footerLogoScript: {
+  fontFamily: "'Playfair Display', serif",
+  fontSize: '24px',
+  fontStyle: 'italic',
+  opacity: 0.9,
+},
+footerBrandDesc: {
+  fontSize: '15px',
+  lineHeight: '1.6',
+  color: '#f8f6f1',
+  opacity: 0.8,
+  maxWidth: '300px',
+},
+socialRow: {
+  display: 'flex',
+  gap: '15px',
+  marginTop: '10px',
+},
+socialIcon: {
+  width: '36px',
+  height: '36px',
+  borderRadius: '50%',
+  border: '1px solid rgba(255,255,255,0.3)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#fff',
+  textDecoration: 'none',
+  fontSize: '14px',
+  transition: '0.3s',
+},
+footerLinksGrid: {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, 1fr)',
+  gap: '40px',
+},
+footerColumn: {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '12px',
+},
+footerTitle: {
+  margin: '0 0 10px 0',
+  color: '#f4d7b0', // Màu vàng đồng nhẹ
+  fontSize: '14px',
+  fontWeight: '700',
+  letterSpacing: '2px',
+  textTransform: 'uppercase',
+},
+footerLink: {
+  color: '#f8f6f1',
+  textDecoration: 'none',
+  fontSize: '15px',
+  opacity: 0.8,
+  transition: '0.3s',
+},
+footerDivider: {
+  maxWidth: '1200px',
+  margin: '60px auto 30px',
+  height: '1px',
+  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+},
+footerBottom: {
+  maxWidth: '1200px',
+  margin: '0 auto',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: '20px',
+},
+footerBottomLeft: {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '10px',
+},
+footerCopy: {
+  fontSize: '13px',
+  opacity: 0.6,
+},
+footerMetaLinks: {
+  display: 'flex',
+  gap: '20px',
+},
+footerMetaLink: {
+  color: '#fff',
+  textDecoration: 'none',
+  fontSize: '13px',
+  opacity: 0.6,
+},
+footerOrder: {
+  fontSize: '16px',
+  fontWeight: '700',
+  color: '#f4d7b0',
+  letterSpacing: '1px',
+  border: '1px solid #f4d7b0',
+  padding: '10px 25px',
+  cursor: 'pointer',
+}
 };
 
 export default Home;
