@@ -1,12 +1,15 @@
 const express = require('express');
+const path = require('path');
 const app = express();
 const db = require('./config/db');
 
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/products', require('./routes/products'));
 
 app.get('/', (req, res) => {
     res.send('Hello Cake Shop');
