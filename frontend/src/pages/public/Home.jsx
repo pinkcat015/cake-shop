@@ -1,8 +1,8 @@
 import React from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import RevealOnScroll from '../components/RevealOnScroll';
+import Navbar from '../../components/Navbar';
+import RevealOnScroll from '../../components/RevealOnScroll';
 
 const Home = () => {
   const { user } = useAuth();
@@ -28,7 +28,12 @@ const Home = () => {
       <section style={styles.quickNav}>
         {user?.role_name === 'admin' && (
           <div style={styles.adminAlert}>
-            Bạn đang đăng nhập với quyền <strong>Quản trị viên</strong>. <Link to="/admin">Đi tới bảng điều khiển</Link>
+            Bạn đang đăng nhập với quyền <strong>Quản trị viên</strong>. <Link to="/admin/products">Đi tới bảng điều khiển</Link>
+          </div>
+        )}
+        {user?.role_name === 'employee' && (
+          <div style={styles.adminAlert}>
+            Bạn đang đăng nhập với quyền <strong>Nhân viên</strong>. <Link to="/employee/products">Đi tới màn hình vận hành</Link>
           </div>
         )}
       </section>

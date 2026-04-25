@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import api from '../api/api';
-import Navbar from '../components/Navbar';
+import { useAuth } from '../../../context/AuthContext';
+import api from '../../../api/api';
+import Navbar from '../../../components/Navbar';
 
 const Login = () => {
   const [formData, setFormData] = useState({

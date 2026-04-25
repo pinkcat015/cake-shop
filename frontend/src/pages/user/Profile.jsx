@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import api from '../api/api';
-import Navbar from '../components/Navbar';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../api/api';
+import Navbar from '../../components/Navbar';
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);

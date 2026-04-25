@@ -1,6 +1,12 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
+const ROLES = Object.freeze({
+    CUSTOMER: 'customer',
+    EMPLOYEE: 'employee',
+    ADMIN: 'admin'
+});
+
 const authenticateToken = (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ message: 'Access denied' });
@@ -21,4 +27,4 @@ const authorizeRoles = (...roles) => {
     };
 };
 
-module.exports = { authenticateToken, authorizeRoles };
+module.exports = { authenticateToken, authorizeRoles, ROLES };
