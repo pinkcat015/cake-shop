@@ -6,7 +6,7 @@ const {
     editProduct,
     removeProduct
 } = require('../controllers/productController');
-const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const { authenticateToken, authorizeRoles, ROLES } = require('../middleware/auth');
 const { uploadProductImage } = require('../middleware/upload');
 
 const router = express.Router();
@@ -15,11 +15,11 @@ const router = express.Router();
 router.get('/', listProducts);
 router.get('/:id', getProductDetail);
 
-// Chi admin moi duoc them/sua/xoa san pham.
+// Employee va admin duoc them/sua san pham.
 router.post(
     '/',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles(ROLES.ADMIN, ROLES.EMPLOYEE),
     uploadProductImage.single('image'),
     addProduct
 );
@@ -27,11 +27,12 @@ router.post(
 router.put(
     '/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles(ROLES.ADMIN, ROLES.EMPLOYEE),
     uploadProductImage.single('image'),
     editProduct
 );
 
-router.delete('/:id', authenticateToken, authorizeRoles('admin'), removeProduct);
+// Chi admin moi duoc xoa san pham.
+router.delete('/:id', authenticateToken, authorizeRoles(ROLES.ADMIN), removeProduct);
 
 module.exports = router;

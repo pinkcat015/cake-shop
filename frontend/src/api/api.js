@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+export const API_BASE_URL = 'http://localhost:3000/api';
+export const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -35,5 +38,11 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const toAssetUrl = (path) => {
+  if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${BACKEND_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
+};
 
 export default api;

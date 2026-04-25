@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../api/api';
-import Navbar from '../components/Navbar';
+import api from '../../../api/api';
+import Navbar from '../../../components/Navbar';
 
 const Register = () => {
   const [formData, setFormData] = useState({

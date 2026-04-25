@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
-  const { token, logout } = useAuth();
+  const { token, logout, role } = useAuth();
   const isLoggedIn = Boolean(token);
 
   const handleLogout = () => {
@@ -15,7 +15,7 @@ const Navbar = () => {
       <div style={styles.topBar}>
         <div style={styles.navLinks}>
           <Link to="/" style={styles.navItem}>Home</Link>
-          <Link to="/menu" style={styles.navItem}>Menu</Link>
+          <Link to="/products" style={styles.navItem}>Products</Link>
           <Link to="/locations" style={styles.navItem}>Locations</Link>
           <Link to="/news" style={styles.navItem}>News</Link>
         </div>
@@ -25,6 +25,8 @@ const Navbar = () => {
             // Khi đã đăng nhập
             <>
               <span style={styles.welcomeText}>Welcome back!</span>
+              {role === 'admin' && <Link to="/admin/products" style={styles.navItem}>Admin</Link>}
+              {role === 'employee' && <Link to="/employee/products" style={styles.navItem}>Employee</Link>}
               <Link to="/profile" style={styles.navItem}>Profile</Link>
               <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
             </>
