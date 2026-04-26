@@ -1,10 +1,44 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const { token, logout, role } = useAuth();
   const isLoggedIn = Boolean(token);
+  const [products, setProducts] = useState([]);
+  const [isProductsOpen, setIsProductsOpen] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCategories = async () => {
+      try {
+        const response = await api.get('/products');
+        if (isMounted) {
+          setProducts(response.data || []);
+        }
+      } catch {
+        if (isMounted) {
+          setProducts([]);
+        }
+      }
+    };
+
+    loadCategories();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const categories = useMemo(() => {
+    const set = new Set();
+    products.forEach((item) => {
+      if (item.category) set.add(item.category);
+    });
+    return Array.from(set).slice(0, 8);
+  }, [products]);
 
   const handleLogout = () => {
     logout();
@@ -15,7 +49,31 @@ const Navbar = () => {
       <div style={styles.topBar}>
         <div style={styles.navLinks}>
           <Link to="/" style={styles.navItem}>Home</Link>
-          <Link to="/products" style={styles.navItem}>Products</Link>
+          <div
+            style={styles.productsMenuWrap}
+            onMouseEnter={() => setIsProductsOpen(true)}
+            onMouseLeave={() => setIsProductsOpen(false)}
+          >
+            <Link to="/products" style={styles.navItem}>Products</Link>
+            {isProductsOpen && (
+              <div style={styles.dropdown}>
+                <Link to="/products" style={styles.dropdownItem}>All Products</Link>
+                {categories.length > 0 ? (
+                  categories.map((category) => (
+                    <Link
+                      key={category}
+                      to={`/products/category/${encodeURIComponent(category)}`}
+                      style={styles.dropdownItem}
+                    >
+                      {category}
+                    </Link>
+                  ))
+                ) : (
+                  <div style={styles.dropdownEmpty}>No categories yet</div>
+                )}
+              </div>
+            )}
+          </div>
           <Link to="/locations" style={styles.navItem}>Locations</Link>
           <Link to="/news" style={styles.navItem}>News</Link>
         </div>
@@ -74,6 +132,38 @@ const styles = {
   authLinks: {
     display: 'flex',
     alignItems: 'center',
+  },
+  productsMenuWrap: {
+    position: 'relative',
+    display: 'inline-flex',
+    alignItems: 'center',
+  },
+  dropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: '15px',
+    minWidth: '220px',
+    backgroundColor: '#fff',
+    border: '1px solid #e8e0d5',
+    boxShadow: '0 18px 30px rgba(0,0,0,0.12)',
+    borderRadius: '10px',
+    padding: '10px 0',
+    marginTop: '10px',
+    zIndex: 20,
+  },
+  dropdownItem: {
+    display: 'block',
+    padding: '10px 18px',
+    color: '#333',
+    textDecoration: 'none',
+    fontSize: '13px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  dropdownEmpty: {
+    padding: '10px 18px',
+    color: '#888',
+    fontSize: '13px',
   },
   welcomeText: {
     color: '#333',

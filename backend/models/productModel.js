@@ -75,6 +75,18 @@ const updateProduct = async (productId, { name, price, description, image, categ
     );
 };
 
+const createOrUpdateInventory = async (productId, quantity) => {
+    // Inventory row co the da ton tai hoac chua; xu ly ca hai truong hop.
+    const [rows] = await db.query('SELECT product_id FROM Inventory WHERE product_id = ? LIMIT 1', [productId]);
+
+    if (rows.length > 0) {
+        await db.query('UPDATE Inventory SET quantity = ? WHERE product_id = ?', [quantity, productId]);
+        return;
+    }
+
+    await db.query('INSERT INTO Inventory (product_id, quantity) VALUES (?, ?)', [productId, quantity]);
+};
+
 const deleteProduct = async (productId) => {
     // Xoa ton kho truoc de khong bi loi khoa ngoai.
     await db.query('DELETE FROM Inventory WHERE product_id = ?', [productId]);
@@ -86,6 +98,7 @@ module.exports = {
     getProductById,
     findOrCreateCategoryId,
     createProduct,
+    createOrUpdateInventory,
     updateProduct,
     deleteProduct
 };

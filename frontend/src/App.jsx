@@ -6,6 +6,7 @@ import Login from './pages/public/auth/Login';
 import Register from './pages/public/auth/Register';
 import Profile from './pages/user/Profile';
 import Products from './pages/public/Products';
+import CategoryProducts from './pages/public/CategoryProducts';
 import ProductDetail from './pages/public/ProductDetail';
 import AdminProducts from './pages/admin/AdminProducts';
 import EmployeeProducts from './pages/employee/EmployeeProducts';
@@ -34,6 +35,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/products/category/:categoryName" element={<CategoryProducts />} />
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />

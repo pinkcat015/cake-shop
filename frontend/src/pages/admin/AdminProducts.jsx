@@ -5,9 +5,21 @@ import Navbar from '../../components/Navbar';
 const emptyForm = {
   name: '',
   price: '',
+  quantity: '0',
   description: '',
   category: '',
   imageUrl: '',
+};
+
+const getQuantityValue = (item) => {
+  const raw = item?.quantity ?? item?.stock ?? item?.stock_quantity ?? 0;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+};
+
+const getStatusValue = (item) => {
+  if (item?.status) return item.status;
+  return getQuantityValue(item) > 0 ? 'ACTIVE' : 'OUT_OF_STOCK';
 };
 
 const AdminProducts = ({ canDelete = true, panelType = 'admin' }) => {
@@ -19,15 +31,45 @@ const AdminProducts = ({ canDelete = true, panelType = 'admin' }) => {
   const [imageFile, setImageFile] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   const isEditing = useMemo(() => editingId !== null, [editingId]);
+  const categories = useMemo(() => {
+    const set = new Set();
+    products.forEach((item) => {
+      if (item.category) set.add(item.category);
+    });
+    return ['all', ...Array.from(set)];
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((item) => {
+      const matchCategory = categoryFilter === 'all' || item.category === categoryFilter;
+      const matchStatus = statusFilter === 'all' || getStatusValue(item) === statusFilter;
+      return matchCategory && matchStatus;
+    });
+  }, [products, categoryFilter, statusFilter]);
+
+  const categoryOptions = useMemo(() => categories.filter((item) => item !== 'all'), [categories]);
+
+  const categorySelectValue = useMemo(() => {
+    if (isCustomCategory) {
+      return '__custom__';
+    }
+    if (!form.category) {
+      return '';
+    }
+    return categoryOptions.includes(form.category) ? form.category : '__custom__';
+  }, [categoryOptions, form.category, isCustomCategory]);
 
   const loadProducts = async () => {
     try {
       const response = await api.get('/products');
       setProducts(response.data || []);
     } catch (err) {
-      setError('Không thể tải danh sách sản phẩm');
+      setError(err.response?.data?.message || 'Không thể tải danh sách sản phẩm');
     } finally {
       setLoading(false);
     }
@@ -40,24 +82,52 @@ const AdminProducts = ({ canDelete = true, panelType = 'admin' }) => {
     setImageFile(null);
     setEditingId(null);
     setMessage('');
+    setIsCustomCategory(false);
   };
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const handleQuantityChange = (e) => {
+    const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
+    setForm((prev) => ({ ...prev, quantity: digitsOnly }));
+  };
+
+  const handleQuantityWheel = (e) => {
+    // Prevent mouse wheel from decrementing number accidentally while scrolling.
+    e.currentTarget.blur();
+  };
+
   const fillForEdit = (item) => {
+    const nextCategory = item.category || '';
+    const knownCategory = nextCategory && categoryOptions.includes(nextCategory);
+
     setEditingId(item.product_id);
     setForm({
       name: item.name || '',
       price: item.price?.toString() || '',
+      quantity: String(getQuantityValue(item)),
       description: item.description || '',
-      category: item.category || '',
+      category: nextCategory,
       imageUrl: item.image || '',
     });
+    setIsCustomCategory(Boolean(nextCategory) && !knownCategory);
     setImageFile(null);
     setMessage('Đang chỉnh sửa: ' + item.name);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCategorySelectChange = (e) => {
+    const value = e.target.value;
+    if (value === '__custom__') {
+      setIsCustomCategory(true);
+      setForm((prev) => ({ ...prev, category: '' }));
+      return;
+    }
+
+    setIsCustomCategory(false);
+    setForm((prev) => ({ ...prev, category: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -66,9 +136,11 @@ const AdminProducts = ({ canDelete = true, panelType = 'admin' }) => {
     setError('');
     
     try {
+      const normalizedQuantity = form.quantity === '' ? '0' : form.quantity;
       const payload = new FormData();
       payload.append('name', form.name);
       payload.append('price', form.price);
+      payload.append('quantity', normalizedQuantity);
       payload.append('description', form.description);
       payload.append('category', form.category);
       if (imageFile) payload.append('image', imageFile);
@@ -84,7 +156,7 @@ const AdminProducts = ({ canDelete = true, panelType = 'admin' }) => {
       await loadProducts();
       resetForm();
     } catch (err) {
-      setError('Lỗi khi lưu dữ liệu');
+      setError(err.response?.data?.message || 'Lỗi khi lưu dữ liệu');
     } finally {
       setSubmitting(false);
     }
@@ -97,7 +169,7 @@ const AdminProducts = ({ canDelete = true, panelType = 'admin' }) => {
       await api.delete(`/products/${id}`);
       await loadProducts();
     } catch (err) {
-      setError('Lỗi khi xóa sản phẩm');
+      setError(err.response?.data?.message || 'Lỗi khi xóa sản phẩm');
     }
   };
 
@@ -131,10 +203,51 @@ const AdminProducts = ({ canDelete = true, panelType = 'admin' }) => {
                   <input name="price" type="number" style={styles.input} value={form.price} onChange={handleChange} required />
                 </div>
                 <div style={styles.inputGroup}>
-                  <label style={styles.label}>Danh mục</label>
-                  <input name="category" style={styles.input} value={form.category} onChange={handleChange} placeholder="Bánh ngọt..." />
+                  <label style={styles.label}>Số lượng tồn kho</label>
+                  <input
+                    name="quantity"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    style={styles.input}
+                    value={form.quantity}
+                    onChange={handleQuantityChange}
+                    onWheel={handleQuantityWheel}
+                    required
+                  />
                 </div>
               </div>
+
+              <div style={styles.inputRow}>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Danh mục</label>
+                  <select
+                    value={categorySelectValue}
+                    onChange={handleCategorySelectChange}
+                    style={styles.input}
+                  >
+                    <option value="">Chọn danh mục</option>
+                    {categoryOptions.map((item) => (
+                      <option key={item} value={item}>{item}</option>
+                    ))}
+                    <option value="__custom__">+ Thêm danh mục mới</option>
+                  </select>
+                </div>
+              </div>
+
+              {isCustomCategory && (
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Danh mục mới</label>
+                  <input
+                    name="category"
+                    style={styles.input}
+                    value={form.category}
+                    onChange={handleChange}
+                    placeholder="Ví dụ: Bánh lạnh"
+                    required
+                  />
+                </div>
+              )}
 
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Mô tả chi tiết</label>
@@ -164,12 +277,44 @@ const AdminProducts = ({ canDelete = true, panelType = 'admin' }) => {
           {/* CỘT PHẢI: DANH SÁCH SẢN PHẨM */}
           <section style={styles.listSection}>
             <div style={styles.listHeader}>
-              <h2 style={styles.listTitle}>Sản phẩm hiện có ({products.length})</h2>
+              <h2 style={styles.listTitle}>Sản phẩm hiện có ({filteredProducts.length})</h2>
+              <div style={styles.filterGroup}>
+                <div style={styles.filterBox}>
+                  <label style={styles.filterLabel}>Lọc theo danh mục</label>
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    style={styles.filterSelect}
+                  >
+                    {categories.map((item) => (
+                      <option key={item} value={item}>
+                        {item === 'all' ? 'Tất cả danh mục' : item}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={styles.filterBox}>
+                  <label style={styles.filterLabel}>Lọc theo trạng thái</label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    style={styles.filterSelect}
+                  >
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="ACTIVE">Còn hàng</option>
+                    <option value="OUT_OF_STOCK">Hết hàng</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             {loading ? <p>Đang tải dữ liệu...</p> : (
               <div style={styles.scrollList}>
-                {products.map((item) => (
+                {filteredProducts.map((item) => {
+                  const quantityValue = getQuantityValue(item);
+                  const statusValue = getStatusValue(item);
+
+                  return (
                   <div key={item.product_id} style={styles.productRow}>
                     <div style={styles.imgContainer}>
                       {item.image ? (
@@ -181,6 +326,10 @@ const AdminProducts = ({ canDelete = true, panelType = 'admin' }) => {
                     <div style={styles.info}>
                       <h4 style={styles.pName}>{item.name}</h4>
                       <p style={styles.pCategory}>{item.category || 'Bakery'}</p>
+                      <p style={styles.pStock}>Tồn kho: {quantityValue}</p>
+                      <p style={{ ...styles.pStatus, color: statusValue === 'ACTIVE' ? '#1f7a31' : '#9b1111' }}>
+                        Trạng thái: {statusValue === 'ACTIVE' ? 'Còn hàng' : 'Hết hàng'}
+                      </p>
                       <p style={styles.pPrice}>{Number(item.price).toLocaleString('vi-VN')} đ</p>
                     </div>
                     <div style={styles.actions}>
@@ -190,7 +339,8 @@ const AdminProducts = ({ canDelete = true, panelType = 'admin' }) => {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
@@ -328,11 +478,43 @@ const styles = {
     borderRadius: '8px', 
     border: '1px solid #eee' 
   },
+  listHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '15px',
+    marginBottom: '20px',
+    flexWrap: 'wrap'
+  },
   listTitle: { 
     fontSize: '1.2rem', 
-    marginBottom: '20px', 
+    marginBottom: 0,
     borderBottom: '2px solid #6b1111', 
-    paddingBottom: '10px' 
+    paddingBottom: '10px'
+  },
+  filterBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    minWidth: '220px'
+  },
+  filterGroup: {
+    display: 'flex',
+    gap: '10px',
+    flexWrap: 'wrap'
+  },
+  filterLabel: {
+    fontSize: '0.75rem',
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: '1px'
+  },
+  filterSelect: {
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    padding: '10px',
+    fontSize: '0.9rem',
+    backgroundColor: '#fff'
   },
   scrollList: { 
     maxHeight: '600px', 
@@ -369,6 +551,8 @@ const styles = {
   info: { flex: 1 },
   pName: { margin: '0 0 4px 0', fontSize: '1rem', fontWeight: 'bold' },
   pCategory: { margin: 0, fontSize: '0.75rem', color: '#b89a5b', textTransform: 'uppercase', fontWeight: 'bold' },
+  pStock: { margin: '4px 0 0 0', fontSize: '0.8rem', color: '#555' },
+  pStatus: { margin: '4px 0 0 0', fontSize: '0.8rem', fontWeight: '600' },
   pPrice: { margin: '4px 0 0 0', color: '#6b1111', fontWeight: 'bold' },
   actions: { display: 'flex', gap: '8px' },
   editBtn: { 
