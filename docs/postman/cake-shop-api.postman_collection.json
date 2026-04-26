@@ -238,9 +238,488 @@
                   "type": "text"
                 },
                 {
+                  "key": "quantity",
+                  "value": "15",
+                  "type": "text"
+                },
+                {
                   "key": "image",
                   "type": "file",
                   "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product - Banh Tiramisu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = pm.response.json();",
+                  "if (data.product_id) {",
+                  "    pm.collectionVariables.set('productId', data.product_id);",
+                  "}",
+                  "pm.test('Status 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Banh Tiramisu",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "320000",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Banh kem cafe mem min va it ngot",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Banh kem",
+                  "type": "text"
+                },
+                {
+                  "key": "quantity",
+                  "value": "12",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "value": "",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product - Banh Chocolate Mousse",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = pm.response.json();",
+                  "if (data.product_id) {",
+                  "    pm.collectionVariables.set('productId', data.product_id);",
+                  "}",
+                  "pm.test('Status 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Banh Chocolate Mousse",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "350000",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Banh chocolate dam vi, cot lanh va mem",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Banh kem",
+                  "type": "text"
+                },
+                {
+                  "key": "quantity",
+                  "value": "10",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "value": "",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product - Banh Matcha Dau",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = pm.response.json();",
+                  "if (data.product_id) {",
+                  "    pm.collectionVariables.set('productId', data.product_id);",
+                  "}",
+                  "pm.test('Status 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Banh Matcha Dau",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "295000",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Matcha nhat ket hop kem dau tuoi",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Banh kem",
+                  "type": "text"
+                },
+                {
+                  "key": "quantity",
+                  "value": "8",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "value": "",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product - Banh Cheesecake Viet Quat",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = pm.response.json();",
+                  "if (data.product_id) {",
+                  "    pm.collectionVariables.set('productId', data.product_id);",
+                  "}",
+                  "pm.test('Status 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Banh Cheesecake Viet Quat",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "310000",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Cheesecake beo nhe, sot viet quat chua ngot",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Banh lanh",
+                  "type": "text"
+                },
+                {
+                  "key": "quantity",
+                  "value": "7",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "value": "",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product - Banh Sinh Nhat Vanilla",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = pm.response.json();",
+                  "if (data.product_id) {",
+                  "    pm.collectionVariables.set('productId', data.product_id);",
+                  "}",
+                  "pm.test('Status 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Banh Sinh Nhat Vanilla",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "450000",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Banh sinh nhat cot vanilla phu kem tuoi",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Banh sinh nhat",
+                  "type": "text"
+                },
+                {
+                  "key": "quantity",
+                  "value": "5",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "value": "",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product - Banh Su Kem Mini",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = pm.response.json();",
+                  "if (data.product_id) {",
+                  "    pm.collectionVariables.set('productId', data.product_id);",
+                  "}",
+                  "pm.test('Status 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Banh Su Kem Mini",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "120000",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Set 10 banh su kem mini cho tiec nho",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Banh ngot",
+                  "type": "text"
+                },
+                {
+                  "key": "quantity",
+                  "value": "30",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "value": "",
+                  "type": "text"
                 }
               ]
             },
@@ -292,6 +771,11 @@
                 {
                   "key": "category",
                   "value": "Banh sinh nhat",
+                  "type": "text"
+                },
+                {
+                  "key": "quantity",
+                  "value": "18",
                   "type": "text"
                 },
                 {

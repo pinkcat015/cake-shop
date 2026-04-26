@@ -3,6 +3,7 @@ const {
     getProductById,
     findOrCreateCategoryId,
     createProduct,
+    createOrUpdateInventory,
     updateProduct,
     deleteProduct
 } = require('../models/productModel');
@@ -10,6 +11,22 @@ const {
 const parsePrice = (value) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+};
+
+const parseQuantity = (value) => {
+    if (value === undefined || value === null || value === '') {
+        return null;
+    }
+
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+};
+
+const resolveQuantityInput = (body) => {
+    if (body.quantity !== undefined) return body.quantity;
+    if (body.stock !== undefined) return body.stock;
+    if (body.stock_quantity !== undefined) return body.stock_quantity;
+    return undefined;
 };
 
 const resolveImageUrl = (req) => {
@@ -59,10 +76,16 @@ const getProductDetail = async (req, res) => {
 const addProduct = async (req, res) => {
     const { name, description } = req.body;
     const price = parsePrice(req.body.price);
+    const quantityRaw = resolveQuantityInput(req.body);
+    const quantity = parseQuantity(quantityRaw);
     const image = resolveImageUrl(req);
 
     if (!name || price === null) {
         return res.status(400).json({ message: 'name and valid price are required' });
+    }
+
+    if (quantity === null && quantityRaw !== undefined) {
+        return res.status(400).json({ message: 'quantity must be a non-negative integer' });
     }
 
     try {
@@ -76,6 +99,10 @@ const addProduct = async (req, res) => {
             image,
             categoryId
         });
+
+        if (quantity !== null) {
+            await createOrUpdateInventory(productId, quantity);
+        }
 
         const product = await getProductById(productId);
         res.status(201).json(product);
@@ -100,6 +127,15 @@ const editProduct = async (req, res) => {
             return res.status(400).json({ message: 'price must be a non-negative number' });
         }
 
+        const quantityRaw = resolveQuantityInput(req.body);
+        const nextQuantity = quantityRaw === undefined
+            ? currentProduct.quantity
+            : parseQuantity(quantityRaw);
+
+        if (nextQuantity === null) {
+            return res.status(400).json({ message: 'quantity must be a non-negative integer' });
+        }
+
         const image = req.file
             ? resolveImageUrl(req)
             : (req.body.image !== undefined ? req.body.image : currentProduct.image);
@@ -116,6 +152,8 @@ const editProduct = async (req, res) => {
             image,
             categoryId
         });
+
+        await createOrUpdateInventory(req.params.id, nextQuantity);
 
         const updatedProduct = await getProductById(req.params.id);
         res.json(updatedProduct);
