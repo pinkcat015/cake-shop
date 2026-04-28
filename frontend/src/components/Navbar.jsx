@@ -137,6 +137,7 @@ const styles = {
     position: 'relative',
     display: 'inline-flex',
     alignItems: 'center',
+    paddingBottom: '12px',
   },
   dropdown: {
     position: 'absolute',
@@ -148,7 +149,6 @@ const styles = {
     boxShadow: '0 18px 30px rgba(0,0,0,0.12)',
     borderRadius: '10px',
     padding: '10px 0',
-    marginTop: '10px',
     zIndex: 20,
   },
   dropdownItem: {

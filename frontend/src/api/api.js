@@ -5,9 +5,8 @@ export const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // Do not set a default Content-Type so axios can correctly
+  // set multipart/form-data when sending FormData (with boundary).
 });
 
 // Request interceptor to add auth token

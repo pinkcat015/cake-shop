@@ -5,7 +5,9 @@ const {
     createProduct,
     createOrUpdateInventory,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getNutritionByProductId,
+    replaceNutritionForProduct
 } = require('../models/productModel');
 
 const parsePrice = (value) => {
@@ -67,6 +69,9 @@ const getProductDetail = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
+        const nutritionFacts = await getNutritionByProductId(product.product_id);
+        product.nutritionFacts = nutritionFacts || [];
+
         res.json(product);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -74,11 +79,20 @@ const getProductDetail = async (req, res) => {
 };
 
 const addProduct = async (req, res) => {
-    const { name, description } = req.body;
+    const { name, description, ingredients } = req.body;
     const price = parsePrice(req.body.price);
     const quantityRaw = resolveQuantityInput(req.body);
     const quantity = parseQuantity(quantityRaw);
     const image = resolveImageUrl(req);
+
+    let nutritionArray = undefined;
+    if (req.body.nutrition !== undefined) {
+        try {
+            nutritionArray = typeof req.body.nutrition === 'string' ? JSON.parse(req.body.nutrition) : req.body.nutrition;
+        } catch (_e) {
+            nutritionArray = [];
+        }
+    }
 
     if (!name || price === null) {
         return res.status(400).json({ message: 'name and valid price are required' });
@@ -96,9 +110,14 @@ const addProduct = async (req, res) => {
             name,
             price,
             description: description || null,
+            ingredients: ingredients || null,
             image,
             categoryId
         });
+
+        if (nutritionArray !== undefined) {
+            await replaceNutritionForProduct(productId, nutritionArray);
+        }
 
         if (quantity !== null) {
             await createOrUpdateInventory(productId, quantity);
@@ -149,9 +168,20 @@ const editProduct = async (req, res) => {
             name: req.body.name !== undefined ? req.body.name : currentProduct.name,
             price: nextPrice,
             description: req.body.description !== undefined ? req.body.description : currentProduct.description,
+            ingredients: req.body.ingredients !== undefined ? req.body.ingredients : currentProduct.ingredients,
             image,
             categoryId
         });
+
+        if (req.body.nutrition !== undefined) {
+            let nutritionArray = [];
+            try {
+                nutritionArray = typeof req.body.nutrition === 'string' ? JSON.parse(req.body.nutrition) : req.body.nutrition;
+            } catch (_e) {
+                nutritionArray = [];
+            }
+            await replaceNutritionForProduct(req.params.id, nutritionArray);
+        }
 
         await createOrUpdateInventory(req.params.id, nextQuantity);
 

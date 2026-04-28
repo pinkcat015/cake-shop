@@ -7,7 +7,8 @@ const getAllProducts = async () => {
             p.product_id,
             p.name,
             p.price,
-            p.description,
+                    p.description,
+                    p.ingredients,
             p.image,
             p.category_id,
             c.name AS category,
@@ -32,6 +33,7 @@ const getProductById = async (productId) => {
             p.name,
             p.price,
             p.description,
+            p.ingredients,
             p.image,
             p.category_id,
             c.name AS category,
@@ -60,19 +62,38 @@ const findOrCreateCategoryId = async (categoryName) => {
     return result.insertId;
 };
 
-const createProduct = async ({ name, price, description, image, categoryId }) => {
+const createProduct = async ({ name, price, description, ingredients, image, categoryId }) => {
     const [result] = await db.query(
-        'INSERT INTO Product (name, price, description, image, category_id) VALUES (?, ?, ?, ?, ?)',
-        [name, price, description, image, categoryId]
+        'INSERT INTO Product (name, price, description, ingredients, image, category_id) VALUES (?, ?, ?, ?, ?, ?)',
+        [name, price, description, ingredients, image, categoryId]
     );
     return result.insertId;
 };
 
-const updateProduct = async (productId, { name, price, description, image, categoryId }) => {
+const updateProduct = async (productId, { name, price, description, ingredients, image, categoryId }) => {
     await db.query(
-        'UPDATE Product SET name = ?, price = ?, description = ?, image = ?, category_id = ? WHERE product_id = ?',
-        [name, price, description, image, categoryId, productId]
+        'UPDATE Product SET name = ?, price = ?, description = ?, ingredients = ?, image = ?, category_id = ? WHERE product_id = ?',
+        [name, price, description, ingredients, image, categoryId, productId]
     );
+};
+
+// NutritionFact helpers
+const getNutritionByProductId = async (productId) => {
+    const [rows] = await db.query(
+        'SELECT nutrition_id, product_id, name, value, unit, per, sort_order FROM NutritionFact WHERE product_id = ? ORDER BY sort_order, nutrition_id',
+        [productId]
+    );
+    return rows;
+};
+
+const replaceNutritionForProduct = async (productId, items) => {
+    // delete existing
+    await db.query('DELETE FROM NutritionFact WHERE product_id = ?', [productId]);
+    if (!items || !Array.isArray(items) || items.length === 0) return;
+
+    const insertSql = 'INSERT INTO NutritionFact (product_id, name, value, unit, per, sort_order) VALUES ?';
+    const values = items.map((it, idx) => [productId, it.name || '', it.value || '', it.unit || null, it.per || null, it.sort_order ?? idx]);
+    await db.query(insertSql, [values]);
 };
 
 const createOrUpdateInventory = async (productId, quantity) => {
@@ -100,5 +121,7 @@ module.exports = {
     createProduct,
     createOrUpdateInventory,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getNutritionByProductId,
+    replaceNutritionForProduct
 };

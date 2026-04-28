@@ -2,6 +2,8 @@ import React, { createContext, useState, useContext } from 'react';
 
 const AuthContext = createContext();
 
+const TOKEN_KEY = 'token';
+
 const decodeJwtPayload = (token) => {
   try {
     const parts = token.split('.');
@@ -16,25 +18,49 @@ const decodeJwtPayload = (token) => {
   }
 };
 
+const getValidStoredToken = () => {
+  const storedToken = localStorage.getItem(TOKEN_KEY);
+  if (!storedToken) return null;
+
+  const payload = decodeJwtPayload(storedToken);
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+
+  if (!payload || !payload.exp || payload.exp <= nowInSeconds) {
+    localStorage.removeItem(TOKEN_KEY);
+    return null;
+  }
+
+  return storedToken;
+};
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   return useContext(AuthContext);
 };
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(getValidStoredToken);
   const payload = token ? decodeJwtPayload(token) : null;
 
   const user = token ? { token, role_name: payload?.role || null, user_id: payload?.user_id || null } : null;
 
   const login = (newToken) => {
+    const newPayload = decodeJwtPayload(newToken);
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+
+    if (!newPayload || !newPayload.exp || newPayload.exp <= nowInSeconds) {
+      setToken(null);
+      localStorage.removeItem(TOKEN_KEY);
+      return;
+    }
+
     setToken(newToken);
-    localStorage.setItem('token', newToken);
+    localStorage.setItem(TOKEN_KEY, newToken);
   };
 
   const logout = () => {
     setToken(null);
-    localStorage.removeItem('token');
+    localStorage.removeItem(TOKEN_KEY);
   };
 
   const value = {
