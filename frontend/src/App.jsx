@@ -8,6 +8,10 @@ import Profile from './pages/user/Profile';
 import Products from './pages/public/Products';
 import CategoryProducts from './pages/public/CategoryProducts';
 import ProductDetail from './pages/public/ProductDetail';
+import Cart from './pages/public/Cart';
+import Checkout from './pages/public/Checkout';
+import Stores from './pages/public/Stores';
+import StoreDetail from './pages/public/StoreDetail';
 import AdminProducts from './pages/admin/AdminProducts';
 import EmployeeProducts from './pages/employee/EmployeeProducts';
 
@@ -37,6 +41,12 @@ function App() {
             <Route path="/products" element={<Products />} />
             <Route path="/products/category/:categoryName" element={<CategoryProducts />} />
             <Route path="/products/:id" element={<ProductDetail />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/locations" element={<Stores />} />
+            <Route path="/stores" element={<Stores />} />
+            <Route path="/stores/:id" element={<StoreDetail />} />
+            <Route path="/locations/:id" element={<StoreDetail />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

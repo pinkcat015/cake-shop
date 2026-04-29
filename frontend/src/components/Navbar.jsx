@@ -76,6 +76,7 @@ const Navbar = () => {
           </div>
           <Link to="/locations" style={styles.navItem}>Locations</Link>
           <Link to="/news" style={styles.navItem}>News</Link>
+          <Link to="/cart" style={styles.navItem}>Cart</Link>
         </div>
         <div style={styles.logo}>SCARLETT</div>
         <div style={styles.authLinks}>

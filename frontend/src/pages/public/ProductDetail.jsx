@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import api, { toAssetUrl } from '../../api/api';
 import Navbar from '../../components/Navbar';
+import { useAuth } from '../../context/AuthContext';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [quantity, setQuantity] = useState('1');
+  const navigate = useNavigate();
+  const { token } = useAuth();
 
   useEffect(() => {
     const loadProduct = async () => {
       try {
         const response = await api.get(`/products/${id}`);
         setProduct(response.data);
+        setQuantity('1');
       } catch (error) {
         setError(error.response?.data?.message || 'Không thể tải chi tiết sản phẩm');
       } finally {
@@ -71,6 +76,9 @@ const ProductDetail = () => {
               <div style={styles.priceTag}>
                 {Number(product.price).toLocaleString('vi-VN')} <span style={{fontSize: '1.2rem'}}>VND</span>
               </div>
+              <div style={{marginBottom:20, color:'#333', fontWeight:600}}>
+                Còn: {Number(product.quantity ?? 0)} chiếc
+              </div>
 
               {/* MÔ TẢ HƯƠNG VỊ */}
               <div style={styles.descriptionSection}>
@@ -79,6 +87,8 @@ const ProductDetail = () => {
                   {product.description || 'Sản phẩm được làm từ nguyên liệu thượng hạng, mang đến hương vị tươi mới mỗi ngày.'}
                 </p>
               </div>
+
+              {/* moved quantity input to action area */}
 
               {/* BẢNG DINH DƯỠNG NẰM BÊN PHẢI */}
               <div style={styles.nutritionSection}>
@@ -112,7 +122,41 @@ const ProductDetail = () => {
               </div>
 
               <div style={styles.actionArea}>
-                <button style={styles.mainBtn}>THÊM VÀO GIỎ HÀNG</button>
+                <div style={{display:'flex', alignItems:'center', gap:12}}>
+                  <label style={{display:'block'}}>Số lượng</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={product.quantity ?? 9999}
+                    value={quantity}
+                    onChange={(e) => {
+                      // allow empty string while typing, remove non-digits
+                      const raw = e.target.value;
+                      const cleaned = raw.replace(/[^0-9]/g, '');
+                      setQuantity(cleaned);
+                    }}
+                    style={{width:100, padding:8}}
+                  />
+                </div>
+
+                {error && <div style={{color: 'red', marginTop: 8}}>{error}</div>}
+
+                <button style={styles.mainBtn} onClick={async () => {
+                  try {
+                    if (!token) return navigate('/login');
+                    const avail = Number(product.quantity ?? 0);
+                    const qtyNum = parseInt(quantity || '0', 10);
+                    if (!qtyNum || qtyNum <= 0) return setError('Vui lòng chọn số lượng hợp lệ');
+                    if (qtyNum > avail) return setError(`Chỉ còn ${avail} chiếc trong kho`);
+                    await api.post('/cart/add', { product_id: product.product_id, quantity: qtyNum });
+                    // clear previous error then navigate
+                    setError('');
+                    navigate('/cart');
+                  } catch (err) {
+                    console.error(err);
+                    setError(err.response?.data?.message || 'Không thể thêm vào giỏ hàng');
+                  }
+                }}>THÊM VÀO GIỎ HÀNG</button>
                 <Link to="/products" style={styles.secondaryLink}>Quay lại thực đơn</Link>
               </div>
             </div>
@@ -142,8 +186,8 @@ const styles = {
 
   // CỘT TRÁI
   leftColumn: { display: 'flex', flexDirection: 'column', gap: '30px' },
-  imageContainer: { width: '100%', backgroundColor: '#fdfdfd', border: '1px solid #f0f0f0', borderRadius: '4px', overflow: 'hidden' },
-  mainImage: { width: '100%', height: 'auto', display: 'block', objectFit: 'cover' },
+  imageContainer: { width: '100%', backgroundColor: '#fdfdfd', border: '1px solid #f0f0f0', borderRadius: '4px', overflow: 'hidden', maxHeight: '600px' },
+  mainImage: { width: '100%', height: 'auto', display: 'block', objectFit: 'cover', maxHeight: '600px' },
   placeholderImg: { height: '450px', backgroundColor: '#6b1111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold' },
   
   ingredientSection: { 
@@ -157,7 +201,7 @@ const styles = {
   infoColumn: { padding: '0' },
   categoryLabel: { color: '#b89a5b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '12px', marginBottom: '10px' },
   productTitle: { fontFamily: "'Playfair Display', serif", fontSize: '3rem', color: '#222', margin: '0 0 15px 0', lineHeight: '1.2' },
-  accentLine: { width: '50px', height: '2px', backgroundColor: '#6b1111', marginBottom: '25px' },
+  accentLine: { width: '600px', height: '2px', backgroundColor: '#6b1111', marginBottom: '25px' },
   priceTag: { fontSize: '2rem', fontWeight: '700', color: '#6b1111', marginBottom: '35px' },
 
   descriptionSection: { marginBottom: '40px' },

@@ -400,7 +400,7 @@ const styles = {
   mainTitle: { fontFamily: "'Playfair Display', serif", fontSize: '2.2rem', color: '#fff', margin: 0 },
   kicker: { textTransform: 'uppercase', letterSpacing: '3px', fontSize: '0.75rem', marginBottom: '15px' },
   container: { maxWidth: '1200px', margin: '0 auto', padding: '30px 20px' },
-  layout: { display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '30px', alignItems: 'start' },
+  layout: { display: 'grid', gridTemplateColumns: '1.3fr 1.2fr', gap: '30px', alignItems: 'start' },
   formSection: { position: 'sticky', top: '20px' },
   card: { backgroundColor: '#fff', padding: '25px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #eee' },
   cardTitle: { fontFamily: "'Playfair Display', serif", color: '#6b1111', marginBottom: '20px', fontSize: '1.4rem' },
@@ -421,7 +421,7 @@ const styles = {
     backgroundColor: '#fcfcfc',
     borderRadius: '6px',
     border: '1px solid #f0f0f0',
-    maxWidth: '420px', // Khống chế chiều ngang tối đa
+    maxWidth: '600px', // Khống chế chiều ngang tối đa
     alignSelf: 'flex-start' // Đẩy về trái
   },
   nutritionHeader: {
@@ -478,7 +478,7 @@ const styles = {
   filterSelect: { flex: 1, border: '1px solid #ddd', borderRadius: '4px', padding: '8px', fontSize: '0.8rem' },
   scrollList: { maxHeight: '700px', overflowY: 'auto' },
   productRow: { display: 'flex', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f9f9f9', gap: '12px' },
-  imgContainer: { width: '60px', height: '60px', borderRadius: '4px', overflow: 'hidden', backgroundColor: '#eee' },
+  imgContainer: { width: '80px', height: '80px', borderRadius: '4px', overflow: 'hidden', backgroundColor: '#eee' },
   thumb: { width: '100%', height: '100%', objectFit: 'cover' },
   noThumb: { fontSize: '0.5rem', color: '#999', textAlign: 'center', lineHeight: '60px' },
   info: { flex: 1 },
