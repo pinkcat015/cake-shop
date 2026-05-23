@@ -10,10 +10,13 @@ import CategoryProducts from './pages/public/CategoryProducts';
 import ProductDetail from './pages/public/ProductDetail';
 import Cart from './pages/public/Cart';
 import Checkout from './pages/public/Checkout';
+import Orders from './pages/public/Orders';
 import Stores from './pages/public/Stores';
 import StoreDetail from './pages/public/StoreDetail';
 import AdminProducts from './pages/admin/AdminProducts';
 import EmployeeProducts from './pages/employee/EmployeeProducts';
+import FloatingCart from './components/FloatingCart';
+import CartFlightOverlay from './components/CartFlightOverlay';
 
 const ProtectedRoute = ({ children, roles }) => {
   const { token, role } = useAuth();
@@ -43,6 +46,7 @@ function App() {
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
             <Route path="/locations" element={<Stores />} />
             <Route path="/stores" element={<Stores />} />
             <Route path="/stores/:id" element={<StoreDetail />} />
@@ -67,6 +71,8 @@ function App() {
               }
             />
           </Routes>
+          <FloatingCart />
+          <CartFlightOverlay />
         </div>
       </Router>
     </AuthProvider>

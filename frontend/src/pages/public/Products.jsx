@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import api, { toAssetUrl } from '../../api/api';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
@@ -10,9 +10,21 @@ const Products = () => {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || 'all');
+  const [priceFilter, setPriceFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hoveredId, setHoveredId] = useState(null);
+  const [addingMap, setAddingMap] = useState({});
+  const [msgMap, setMsgMap] = useState({});
+  const navigate = useNavigate();
+
+  const priceRanges = [
+    { value: 'all', label: 'Tất cả giá' },
+    { value: 'under-50000', label: 'Dưới 50.000đ' },
+    { value: '50000-100000', label: '50.000đ - 100.000đ' },
+    { value: '100000-200000', label: '100.000đ - 200.000đ' },
+    { value: 'over-200000', label: 'Trên 200.000đ' },
+  ];
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -43,12 +55,27 @@ const Products = () => {
     const normalizedSearch = search.trim().toLowerCase();
     return products.filter((item) => {
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+      const price = Number(item.price || 0);
+      const matchesPrice = (() => {
+        switch (priceFilter) {
+          case 'under-50000':
+            return price < 50000;
+          case '50000-100000':
+            return price >= 50000 && price <= 100000;
+          case '100000-200000':
+            return price > 100000 && price <= 200000;
+          case 'over-200000':
+            return price > 200000;
+          default:
+            return true;
+        }
+      })();
       const matchesSearch = !normalizedSearch || 
                             item.name?.toLowerCase().includes(normalizedSearch) || 
                             item.description?.toLowerCase().includes(normalizedSearch);
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesPrice && matchesSearch;
     });
-  }, [products, search, categoryFilter]);
+  }, [products, search, categoryFilter, priceFilter]);
 
   return (
     <div style={styles.page}>
@@ -111,6 +138,19 @@ const Products = () => {
               ))}
             </select>
           </div>
+          <div style={styles.filterContainer}>
+            <select
+              value={priceFilter}
+              onChange={(e) => setPriceFilter(e.target.value)}
+              style={styles.selectInput}
+            >
+              {priceRanges.map((range) => (
+                <option key={range.value} value={range.value}>
+                  {range.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </section>
 
         {loading && <div style={styles.statusBox}>Đang chuẩn bị bánh tươi...</div>}
@@ -159,9 +199,39 @@ const Products = () => {
                     <span style={styles.priceLabel}>Giá từ</span>
                     <strong style={styles.price}>{Number(item.price).toLocaleString('vi-VN')} đ</strong>
                   </div>
-                  <Link to={`/products/${item.product_id}`} style={styles.detailLink}>
-                    XEM THÊM
-                  </Link>
+                  <div style={{display:'flex', gap:10, alignItems:'center'}}>
+                    <Link to={`/products/${item.product_id}`} style={styles.detailLink}>
+                      XEM THÊM
+                    </Link>
+                    <button
+                      onClick={async (e) => {
+                        try {
+                          setMsgMap((m) => ({ ...m, [item.product_id]: '' }));
+                          setAddingMap((m) => ({ ...m, [item.product_id]: true }));
+                          const token = localStorage.getItem('token');
+                          if (!token) return navigate('/login');
+                          const rect = e.currentTarget?.getBoundingClientRect?.();
+                          await api.post('/cart/add', { product_id: item.product_id, quantity: 1 });
+                          setMsgMap((m) => ({ ...m, [item.product_id]: 'Đã thêm' }));
+                          window.dispatchEvent(new CustomEvent('cart-added', {
+                            detail: rect ? { sourceRect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, quantity: 1 } : { quantity: 1 }
+                          }));
+                          window.dispatchEvent(new Event('cart-updated'));
+                        } catch (err) {
+                          console.error(err);
+                          setMsgMap((m) => ({ ...m, [item.product_id]: err.response?.data?.message || 'Không thể thêm vào giỏ' }));
+                        } finally {
+                          setAddingMap((m) => ({ ...m, [item.product_id]: false }));
+                          setTimeout(() => setMsgMap((m) => ({ ...m, [item.product_id]: '' })), 2200);
+                        }
+                      }}
+                      disabled={Boolean(addingMap[item.product_id])}
+                      style={{ padding: '8px 12px', backgroundColor: '#6b1111', color: '#fff', border: 'none', cursor: 'pointer', fontWeight:700 }}
+                    >
+                      {addingMap[item.product_id] ? 'ĐANG...' : 'THÊM'}
+                    </button>
+                  </div>
+                  {msgMap[item.product_id] && <div style={{marginTop:6, fontSize:12, color: msgMap[item.product_id].startsWith('Đã') ? '#2f7a2f' : '#a12f2f'}}>{msgMap[item.product_id]}</div>}
                 </div>
               </div>
             </article>
@@ -204,12 +274,12 @@ const styles = {
   shell: { maxWidth: '1240px', margin: '0 auto', padding: '100px 20px' },
   headerRow: { position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '60px', borderBottom: '1px solid #f0f0f0', paddingBottom: '30px' },
   headerTitleGroup: { textAlign: 'center' },
-  kicker: { color: '#b89a5b', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '3px', fontSize: '0.8rem', marginBottom: '10px' },
+  kicker: { color: '#b89a5b', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '3px', fontSize: '0.8rem', marginBottom: '20px' },
   mainTitle: { fontFamily: "'Playfair Display', serif", fontSize: '3rem', margin: 0, color: '#6b1111' },
   adminBtn: { position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', backgroundColor: '#6b1111', color: '#fff', padding: '15px 35px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: '700', letterSpacing: '2px', borderRadius: '2px' },
-  toolbar: { display: 'flex', gap: '20px', marginBottom: '70px' },
+  toolbar: { display: 'flex', gap: '20px', marginBottom: '70px', flexWrap: 'wrap' },
   searchContainer: { flex: 3 },
-  filterContainer: { flex: 1 },
+  filterContainer: { flex: 1, minWidth: '220px' },
   searchInput: { width: '100%', padding: '18px 25px', border: '1px solid #e0e0e0', fontSize: '0.95rem', outline: 'none', backgroundColor: '#fff' },
   selectInput: { width: '100%', padding: '18px 20px', border: '1px solid #e0e0e0', fontSize: '0.95rem', outline: 'none', cursor: 'pointer', backgroundColor: '#fff' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '50px 30px' },

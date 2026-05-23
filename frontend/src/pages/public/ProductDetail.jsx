@@ -9,7 +9,9 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [quantity, setQuantity] = useState('1');
+  const [adding, setAdding] = useState(false);
   const navigate = useNavigate();
   const { token } = useAuth();
 
@@ -134,6 +136,8 @@ const ProductDetail = () => {
                       const raw = e.target.value;
                       const cleaned = raw.replace(/[^0-9]/g, '');
                       setQuantity(cleaned);
+                      setError('');
+                      setSuccessMessage('');
                     }}
                     style={{width:100, padding:8}}
                   />
@@ -141,22 +145,44 @@ const ProductDetail = () => {
 
                 {error && <div style={{color: 'red', marginTop: 8}}>{error}</div>}
 
-                <button style={styles.mainBtn} onClick={async () => {
+                <button
+                  style={styles.mainBtn}
+                  disabled={adding}
+                  onClick={async (event) => {
                   try {
+                    setError('');
+                    setSuccessMessage('');
+                    setAdding(true);
                     if (!token) return navigate('/login');
                     const avail = Number(product.quantity ?? 0);
                     const qtyNum = parseInt(quantity || '0', 10);
                     if (!qtyNum || qtyNum <= 0) return setError('Vui lòng chọn số lượng hợp lệ');
                     if (qtyNum > avail) return setError(`Chỉ còn ${avail} chiếc trong kho`);
+                    const rect = event.currentTarget?.getBoundingClientRect?.();
                     await api.post('/cart/add', { product_id: product.product_id, quantity: qtyNum });
-                    // clear previous error then navigate
                     setError('');
-                    navigate('/cart');
+                    setSuccessMessage(`Đã thêm ${qtyNum} sản phẩm vào giỏ hàng`);
+                    window.dispatchEvent(new CustomEvent('cart-added', {
+                      detail: rect ? {
+                        sourceRect: {
+                          left: rect.left,
+                          top: rect.top,
+                          width: rect.width,
+                          height: rect.height,
+                        },
+                        quantity: qtyNum,
+                      } : { quantity: qtyNum },
+                    }));
+                    window.dispatchEvent(new Event('cart-updated'));
                   } catch (err) {
                     console.error(err);
+                    setSuccessMessage('');
                     setError(err.response?.data?.message || 'Không thể thêm vào giỏ hàng');
+                  } finally {
+                    setAdding(false);
                   }
-                }}>THÊM VÀO GIỎ HÀNG</button>
+                }}>{adding ? 'ĐANG THÊM...' : 'THÊM VÀO GIỎ HÀNG'}</button>
+                {successMessage && <div style={styles.successText}>{successMessage}</div>}
                 <Link to="/products" style={styles.secondaryLink}>Quay lại thực đơn</Link>
               </div>
             </div>
@@ -243,6 +269,11 @@ const styles = {
     fontWeight: '600', 
     alignSelf: 'flex-start',
     borderBottom: '1px solid #333'
+  },
+  successText: {
+    color: '#2f7a2f',
+    fontSize: '14px',
+    fontWeight: '600',
   },
 
   statusBox: { textAlign: 'center', padding: '100px 0', fontSize: '1.2rem', color: '#888' }

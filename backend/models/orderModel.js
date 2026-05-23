@@ -64,9 +64,70 @@ const getOrderById = async (orderId) => {
   return rows[0];
 };
 
+const getOrdersByUserId = async (userId) => {
+  // Build a safe select based on existing columns to support schema drift
+  const available = await getOrderColumns();
+  const selectParts = [
+    'o.order_id',
+    'o.customer_id',
+    'o.total_price',
+    'o.status',
+    'o.order_date',
+    'o.delivery_method',
+  ];
+
+  if (available.includes('address')) selectParts.push('o.address');
+  if (available.includes('store_id')) selectParts.push('o.store_id');
+
+  // Add store fields only if store_id exists
+  let joinStore = false;
+  if (available.includes('store_id')) {
+    joinStore = true;
+    selectParts.push('s.name AS store_name', 's.address AS store_address');
+  }
+
+  const sql = `SELECT\n    ${selectParts.join(',\n    ')}\n  FROM \`Order\` o\n  INNER JOIN Customer c ON c.customer_id = o.customer_id${joinStore ? '\n  LEFT JOIN Store s ON s.store_id = o.store_id' : ''}\n  WHERE c.user_id = ?\n  ORDER BY o.order_date DESC, o.order_id DESC`;
+
+  const [orders] = await db.query(sql, [userId]);
+
+  if (!orders.length) {
+    return [];
+  }
+
+  const orderIds = orders.map((order) => order.order_id);
+  const [details] = await db.query(
+    `SELECT
+      od.order_id,
+      od.product_id,
+      od.quantity,
+      od.price,
+      p.name,
+      p.image
+    FROM OrderDetail od
+    LEFT JOIN Product p ON p.product_id = od.product_id
+    WHERE od.order_id IN (?)
+    ORDER BY od.order_detail_id ASC`,
+    [orderIds]
+  );
+
+  const detailMap = details.reduce((accumulator, item) => {
+    if (!accumulator[item.order_id]) {
+      accumulator[item.order_id] = [];
+    }
+    accumulator[item.order_id].push(item);
+    return accumulator;
+  }, {});
+
+  return orders.map((order) => ({
+    ...order,
+    items: detailMap[order.order_id] || [],
+  }));
+};
+
 module.exports = {
   createOrder,
   addOrderDetails,
   updateOrderStatus,
-  getOrderById
+  getOrderById,
+  getOrdersByUserId
 };

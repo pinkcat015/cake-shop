@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import api, { toAssetUrl } from '../../api/api';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
@@ -9,9 +9,21 @@ const CategoryProducts = () => {
   const { role } = useAuth();
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
+  const [priceFilter, setPriceFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hoveredId, setHoveredId] = useState(null);
+  const [addingMap, setAddingMap] = useState({});
+  const [msgMap, setMsgMap] = useState({});
+  const navigate = useNavigate();
+
+  const priceRanges = [
+    { value: 'all', label: 'Tất cả giá' },
+    { value: 'under-50000', label: 'Dưới 50.000đ' },
+    { value: '50000-100000', label: '50.000đ - 100.000đ' },
+    { value: '100000-200000', label: '100.000đ - 200.000đ' },
+    { value: 'over-200000', label: 'Trên 200.000đ' },
+  ];
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -34,13 +46,28 @@ const CategoryProducts = () => {
     const normalizedSearch = search.trim().toLowerCase();
     return products.filter((item) => {
       const matchesCategory = !selectedCategory || item.category === selectedCategory;
+      const price = Number(item.price || 0);
+      const matchesPrice = (() => {
+        switch (priceFilter) {
+          case 'under-50000':
+            return price < 50000;
+          case '50000-100000':
+            return price >= 50000 && price <= 100000;
+          case '100000-200000':
+            return price > 100000 && price <= 200000;
+          case 'over-200000':
+            return price > 200000;
+          default:
+            return true;
+        }
+      })();
       const matchesSearch =
         !normalizedSearch ||
         item.name?.toLowerCase().includes(normalizedSearch) ||
         item.description?.toLowerCase().includes(normalizedSearch);
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesPrice && matchesSearch;
     });
-  }, [products, search, selectedCategory]);
+  }, [products, search, selectedCategory, priceFilter]);
 
   return (
     <div style={styles.page}>
@@ -79,6 +106,19 @@ const CategoryProducts = () => {
           </div>
           <div style={styles.filterNotice}>
             <Link to="/products" style={styles.backLink}>← Quay lại tất cả sản phẩm</Link>
+          </div>
+          <div style={styles.priceFilterWrap}>
+            <select
+              value={priceFilter}
+              onChange={(e) => setPriceFilter(e.target.value)}
+              style={styles.selectInput}
+            >
+              {priceRanges.map((range) => (
+                <option key={range.value} value={range.value}>
+                  {range.label}
+                </option>
+              ))}
+            </select>
           </div>
         </section>
 
@@ -128,9 +168,39 @@ const CategoryProducts = () => {
                 <p style={styles.cardDesc}>{item.description || 'Hương vị thơm ngon truyền thống từ những nghệ nhân làm bánh.'}</p>
                 <div style={styles.cardBottom}>
                   <strong style={styles.price}>{Number(item.price).toLocaleString('vi-VN')} đ</strong>
-                  <Link to={`/products/${item.product_id}`} style={styles.detailLink}>
-                    CHI TIẾT
-                  </Link>
+                  <div style={{display:'flex', gap:10, alignItems:'center'}}>
+                    <Link to={`/products/${item.product_id}`} style={styles.detailLink}>
+                      CHI TIẾT
+                    </Link>
+                    <button
+                      onClick={async (e) => {
+                        try {
+                          setMsgMap((m) => ({ ...m, [item.product_id]: '' }));
+                          setAddingMap((m) => ({ ...m, [item.product_id]: true }));
+                          const token = localStorage.getItem('token');
+                          if (!token) return navigate('/login');
+                          const rect = e.currentTarget?.getBoundingClientRect?.();
+                          await api.post('/cart/add', { product_id: item.product_id, quantity: 1 });
+                          setMsgMap((m) => ({ ...m, [item.product_id]: 'Đã thêm' }));
+                          window.dispatchEvent(new CustomEvent('cart-added', {
+                            detail: rect ? { sourceRect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, quantity: 1 } : { quantity: 1 }
+                          }));
+                          window.dispatchEvent(new Event('cart-updated'));
+                        } catch (err) {
+                          console.error(err);
+                          setMsgMap((m) => ({ ...m, [item.product_id]: err.response?.data?.message || 'Không thể thêm vào giỏ' }));
+                        } finally {
+                          setAddingMap((m) => ({ ...m, [item.product_id]: false }));
+                          setTimeout(() => setMsgMap((m) => ({ ...m, [item.product_id]: '' })), 2200);
+                        }
+                      }}
+                      disabled={Boolean(addingMap[item.product_id])}
+                      style={{ padding: '8px 12px', backgroundColor: '#6b1111', color: '#fff', border: 'none', cursor: 'pointer', fontWeight:700 }}
+                    >
+                      {addingMap[item.product_id] ? 'ĐANG...' : 'THÊM'}
+                    </button>
+                  </div>
+                  {msgMap[item.product_id] && <div style={{marginTop:6, fontSize:12, color: msgMap[item.product_id].startsWith('Đã') ? '#2f7a2f' : '#a12f2f'}}>{msgMap[item.product_id]}</div>}
                 </div>
               </div>
             </article>
@@ -229,9 +299,11 @@ const styles = {
     gap: '15px',
     marginBottom: '40px',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   searchContainer: { flex: 3 },
   filterNotice: { flex: 1, display: 'flex', justifyContent: 'flex-end' },
+  priceFilterWrap: { minWidth: '220px', flex: 1 },
   searchInput: {
     width: '100%',
     padding: '15px 20px',
@@ -239,6 +311,16 @@ const styles = {
     fontSize: '1rem',
     outline: 'none',
     boxSizing: 'border-box',
+  },
+  selectInput: {
+    width: '100%',
+    padding: '15px 18px',
+    border: '1px solid #ddd',
+    fontSize: '1rem',
+    outline: 'none',
+    boxSizing: 'border-box',
+    backgroundColor: '#fff',
+    cursor: 'pointer',
   },
   backLink: {
     color: '#6b1111',

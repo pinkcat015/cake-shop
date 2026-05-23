@@ -84,6 +84,7 @@ const Navbar = () => {
             // Khi đã đăng nhập
             <>
               <span style={styles.welcomeText}>Welcome back!</span>
+              <Link to="/orders" style={styles.navItem}>Orders</Link>
               {role === 'admin' && <Link to="/admin/products" style={styles.navItem}>Admin</Link>}
               {role === 'employee' && <Link to="/employee/products" style={styles.navItem}>Employee</Link>}
               <Link to="/profile" style={styles.navItem}>Profile</Link>

@@ -26,6 +26,7 @@ const Cart = () => {
     try {
       await api.put('/cart/update', { product_id, quantity: Number(qty) });
       await loadCart();
+      window.dispatchEvent(new Event('cart-updated'));
     } catch (err) {
       console.error(err);
     }
@@ -36,6 +37,7 @@ const Cart = () => {
     try {
       await api.delete('/cart/remove', { data: { product_id } });
       await loadCart();
+      window.dispatchEvent(new Event('cart-updated'));
     } catch (err) {
       console.error(err);
     }
