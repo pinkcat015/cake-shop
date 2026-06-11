@@ -4,27 +4,21 @@ const GOOGLE_DISTANCE_MATRIX_URL = 'https://maps.googleapis.com/maps/api/distanc
 
 const buildRouteDetails = async (origin, stores) => {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-
-  if (!apiKey || typeof fetch !== 'function' || stores.length === 0) {
-    return null;
-  }
+  if (!apiKey || typeof fetch !== 'function' || stores.length === 0) return null;
 
   const url = new URL(GOOGLE_DISTANCE_MATRIX_URL);
   url.searchParams.set('origins', `${origin.lat},${origin.lng}`);
-  url.searchParams.set('destinations', stores.map((store) => `${store.latitude},${store.longitude}`).join('|'));
+  url.searchParams.set('destinations', stores.map(s => `${s.latitude},${s.longitude}`).join('|'));
   url.searchParams.set('units', 'metric');
   url.searchParams.set('key', apiKey);
 
   const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Google Maps API request failed with status ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`Google Maps API failed: ${response.status}`);
 
   const data = await response.json();
   if (data.status !== 'OK' || !Array.isArray(data.rows) || !data.rows[0]) {
-    throw new Error(`Google Maps API returned status ${data.status || 'UNKNOWN'}`);
+    throw new Error(`Google Maps API status: ${data.status || 'UNKNOWN'}`);
   }
-
   return data.rows[0].elements || [];
 };
 
@@ -43,15 +37,16 @@ const enrichStoresWithRouteData = (stores, routeElements) => {
       route_distance_km: routeDistanceKm,
       route_duration_minutes: routeDurationMinutes,
       route_duration_seconds: routeDurationSeconds,
-      google_route_status: element.status || 'UNKNOWN'
+      google_route_status: element.status || 'UNKNOWN',
     };
   });
 };
 
+// Dành cho user: chỉ hiện active
 const listStores = async (req, res) => {
   try {
-    const stores = await storeModel.getAllStores();
-    res.json({ stores });
+    const all = await storeModel.getAllStores();
+    res.json({ stores: all.filter(s => s.active) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
@@ -78,16 +73,15 @@ const nearestStores = async (req, res) => {
     try {
       const routeElements = await buildRouteDetails({ lat: parsedLat, lng: parsedLng }, candidates);
       if (routeElements) {
-        const enrichedStores = enrichStoresWithRouteData(candidates, routeElements);
-        const rankedStores = enrichedStores
-          .filter((store) => store.google_route_status === 'OK' && Number.isFinite(store.route_duration_seconds))
-          .sort((a, b) => a.route_duration_seconds - b.route_duration_seconds || a.route_distance_km - b.route_distance_km || a.straight_line_distance_km - b.straight_line_distance_km);
-        const fallbackStores = enrichedStores.filter((store) => !(store.google_route_status === 'OK' && Number.isFinite(store.route_duration_seconds)));
-
-        stores = [...rankedStores, ...fallbackStores].slice(0, finalLimit);
+        const enriched = enrichStoresWithRouteData(candidates, routeElements);
+        const ranked = enriched
+          .filter(s => s.google_route_status === 'OK' && Number.isFinite(s.route_duration_seconds))
+          .sort((a, b) => a.route_duration_seconds - b.route_duration_seconds || a.route_distance_km - b.route_distance_km);
+        const fallback = enriched.filter(s => !(s.google_route_status === 'OK' && Number.isFinite(s.route_duration_seconds)));
+        stores = [...ranked, ...fallback].slice(0, finalLimit);
       }
     } catch (routeErr) {
-      console.warn('Google Maps route lookup failed, falling back to straight-line distance', routeErr.message);
+      console.warn('Google Maps fallback to straight-line:', routeErr.message);
     }
 
     res.json({ stores });
@@ -101,11 +95,68 @@ const getStoreDetail = async (req, res) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ message: 'store id is required' });
-    
+
     const store = await storeModel.getStoreById(Number(id));
     if (!store) return res.status(404).json({ message: 'Store not found' });
-    
+
     res.json({ store });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Dành cho admin: hiện tất cả kể cả inactive
+const adminListStores = async (req, res) => {
+  try {
+    const stores = await storeModel.getAllStores();
+    res.json({ stores });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const adminCreateStore = async (req, res) => {
+  try {
+    const { name, address, phone, open_hours, description, rating, image_url, latitude, longitude, active } = req.body;
+    if (!name?.trim()) return res.status(400).json({ message: 'Tên cửa hàng là bắt buộc' });
+
+    const store = await storeModel.createStore({ name, address, phone, open_hours, description, rating, image_url, latitude, longitude, active });
+    res.status(201).json({ store });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const adminUpdateStore = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, address, phone, open_hours, description, rating, image_url, latitude, longitude, active } = req.body;
+    if (!name?.trim()) return res.status(400).json({ message: 'Tên cửa hàng là bắt buộc' });
+
+    const existing = await storeModel.getStoreById(Number(id));
+    if (!existing) return res.status(404).json({ message: 'Store not found' });
+
+    const store = await storeModel.updateStore(Number(id), { name, address, phone, open_hours, description, rating, image_url, latitude, longitude, active });
+    res.json({ store });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const adminDeleteStore = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await storeModel.getStoreById(Number(id));
+    if (!existing) return res.status(404).json({ message: 'Store not found' });
+
+    const deleted = await storeModel.deleteStore(Number(id));
+    if (!deleted) return res.status(500).json({ message: 'Xóa thất bại' });
+
+    res.json({ message: 'Xóa cửa hàng thành công' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
@@ -114,6 +165,10 @@ const getStoreDetail = async (req, res) => {
 
 module.exports = {
   listStores,
+  nearestStores,
   getStoreDetail,
-  nearestStores
+  adminListStores,
+  adminCreateStore,
+  adminUpdateStore,
+  adminDeleteStore,
 };

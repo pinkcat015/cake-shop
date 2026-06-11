@@ -17,6 +17,7 @@ import AdminProducts from './pages/admin/AdminProducts';
 import EmployeeProducts from './pages/employee/EmployeeProducts';
 import FloatingCart from './components/FloatingCart';
 import CartFlightOverlay from './components/CartFlightOverlay';
+import AdminStores from './pages/admin/AdminStores';
 
 const ProtectedRoute = ({ children, roles }) => {
   const { token, role } = useAuth();
@@ -49,6 +50,11 @@ function App() {
             <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
             <Route path="/locations" element={<Stores />} />
             <Route path="/stores" element={<Stores />} />
+            <Route path="/admin/stores" element={
+              <ProtectedRoute roles={['admin']}>
+                <AdminStores />
+              </ProtectedRoute>
+            } />
             <Route path="/stores/:id" element={<StoreDetail />} />
             <Route path="/locations/:id" element={<StoreDetail />} />
             <Route path="/register" element={<Register />} />
