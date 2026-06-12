@@ -1,6 +1,8 @@
     const bcrypt = require('bcryptjs');
     const jwt = require('jsonwebtoken');
-    const { findUserByUsername, findUserByEmail, createUser, getRoleByName } = require('../models/userModel');
+    const crypto = require('crypto');
+    const { findUserByUsername, findUserByEmail, createUser, getRoleByName, updateUserResetToken, findUserByResetToken, updateUserPassword, verifyUserEmail } = require('../models/userModel');
+    const { sendVerificationEmail, sendResetOtpEmail } = require('../config/mailer');
 
     const register = async (req, res) => {
         const { username, password, email, role_name } = req.body;
@@ -21,11 +23,18 @@
             // Hash password
             const hashedPassword = await bcrypt.hash(password, 10);
 
-            // Insert user
-            await createUser(username, hashedPassword, email, role.role_id);
+            // Generate verification token
+            const verificationToken = crypto.randomBytes(32).toString('hex');
 
-            res.status(201).json({ message: 'User registered successfully' });
+            // Insert user
+            await createUser(username, hashedPassword, email, role.role_id, verificationToken);
+
+            // Send verification email
+            await sendVerificationEmail(email, verificationToken);
+
+            res.status(201).json({ message: 'Đăng ký tài khoản thành công! Vui lòng kiểm tra email của bạn để kích hoạt tài khoản.' });
         } catch (error) {
+            console.error(error);
             res.status(500).json({ message: 'Server error', error });
         }
     };
@@ -44,6 +53,11 @@
                 return res.status(400).json({ message: 'Invalid credentials' });
             }
 
+            // Check if user is verified
+            if (!user.is_verified) {
+                return res.status(400).json({ message: 'Tài khoản chưa được xác thực. Vui lòng kiểm tra email của bạn để kích hoạt tài khoản.' });
+            }
+
             const token = jwt.sign({ user_id: user.user_id, role: user.role_name }, process.env.JWT_SECRET, { expiresIn: '1h' });
             res.json({ token });
         } catch (error) {
@@ -51,14 +65,74 @@
         }
     };
 
-    const forgotPassword = (req, res) => {
-        // Placeholder
-        res.json({ message: 'Forgot password functionality not implemented yet' });
+    const verifyEmail = async (req, res) => {
+        const token = String(req.query.token || '').trim();
+        if (!token) {
+            return res.status(400).json({ message: 'Token is required' });
+        }
+        try {
+            const success = await verifyUserEmail(token);
+            if (!success) {
+                return res.status(400).json({ message: 'Mã xác thực không hợp lệ hoặc tài khoản đã được kích hoạt trước đó.' });
+            }
+            res.json({ message: 'Tài khoản của bạn đã được kích hoạt thành công! Bây giờ bạn có thể đăng nhập.' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Server error', error });
+        }
     };
 
-    const resetPassword = (req, res) => {
-        // Placeholder
-        res.json({ message: 'Reset password functionality not implemented yet' });
+    const forgotPassword = async (req, res) => {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: 'Email is required' });
+        }
+        try {
+            const user = await findUserByEmail(email);
+            if (!user) {
+                return res.status(404).json({ message: 'User with this email does not exist' });
+            }
+
+            // Generate 6-digit OTP code
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            // Expiry: 15 minutes
+            const expiry = new Date(Date.now() + 15 * 60 * 1000);
+
+            await updateUserResetToken(email, otp, expiry);
+
+            // Send reset OTP email
+            await sendResetOtpEmail(email, otp);
+
+            console.log(`[SMTP SENDER] Reset OTP for ${email}: ${otp}`);
+
+            res.json({
+                message: 'Mã xác thực OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hòm thư.'
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Server error', error });
+        }
     };
 
-    module.exports = { register, login, forgotPassword, resetPassword };
+    const resetPassword = async (req, res) => {
+        const { email, token, newPassword } = req.body;
+        if (!email || !token || !newPassword) {
+            return res.status(400).json({ message: 'Email, OTP token, and newPassword are required' });
+        }
+        try {
+            const user = await findUserByResetToken(email, token);
+            if (!user) {
+                return res.status(400).json({ message: 'Invalid or expired OTP token' });
+            }
+
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            await updateUserPassword(email, hashedPassword);
+
+            res.json({ message: 'Password has been reset successfully' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Server error', error });
+        }
+    };
+
+    module.exports = { register, login, verifyEmail, forgotPassword, resetPassword };

@@ -164,4 +164,14 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
-module.exports = { createOrderFromCart, getMyOrders, updateOrderStatus };
+const getAllOrders = async (req, res) => {
+  try {
+    const orders = await orderModel.getAllOrders();
+    res.json({ orders });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+module.exports = { createOrderFromCart, getMyOrders, updateOrderStatus, getAllOrders };

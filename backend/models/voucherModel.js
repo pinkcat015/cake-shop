@@ -91,8 +91,37 @@ const calculateCartPricing = async (items, voucherCode = null) => {
   };
 };
 
+const getAllVouchers = async () => {
+  const [rows] = await db.query('SELECT * FROM Voucher ORDER BY expiry_date DESC, voucher_id DESC');
+  return rows;
+};
+
+const createVoucher = async (code, discount, expiryDate) => {
+  const [result] = await db.query(
+    'INSERT INTO Voucher (code, discount, expiry_date) VALUES (?, ?, ?)',
+    [String(code).trim().toUpperCase(), discount, expiryDate || null]
+  );
+  return { voucher_id: result.insertId, code, discount, expiry_date: expiryDate };
+};
+
+const updateVoucher = async (id, code, discount, expiryDate) => {
+  await db.query(
+    'UPDATE Voucher SET code = ?, discount = ?, expiry_date = ? WHERE voucher_id = ?',
+    [String(code).trim().toUpperCase(), discount, expiryDate || null, id]
+  );
+  return { voucher_id: id, code, discount, expiry_date: expiryDate };
+};
+
+const deleteVoucher = async (id) => {
+  await db.query('DELETE FROM Voucher WHERE voucher_id = ?', [id]);
+};
+
 module.exports = {
   getVoucherByCode,
   getActivePromotionsForProducts,
   calculateCartPricing,
+  getAllVouchers,
+  createVoucher,
+  updateVoucher,
+  deleteVoucher
 };

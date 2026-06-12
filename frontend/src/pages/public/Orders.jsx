@@ -28,6 +28,21 @@ const getStatusLabel = (status) => {
   }
 };
 
+const getStatusStyles = (status) => {
+  switch (status) {
+    case 'CONFIRMED':
+      return { backgroundColor: '#e6f4ea', color: '#137333', border: '1px solid #ceead6' };
+    case 'SHIPPING':
+      return { backgroundColor: '#e8f0fe', color: '#1a73e8', border: '1px solid #d2e3fc' };
+    case 'DELIVERED':
+      return { backgroundColor: '#e6f4ea', color: '#137333', border: '1px solid #ceead6' };
+    case 'CANCELLED':
+      return { backgroundColor: '#fce8e6', color: '#c5221f', border: '1px solid #fad2cf' };
+    default:
+      return { backgroundColor: '#fef7e0', color: '#b06000', border: '1px solid #fde8c4' };
+  }
+};
+
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +98,9 @@ const Orders = () => {
                       <div style={styles.orderLabel}>Mã đơn #{order.order_id}</div>
                       <div style={styles.orderDate}>{formatDate(order.order_date)}</div>
                     </div>
-                    <span style={styles.statusPill}>{getStatusLabel(order.status)}</span>
+                    <span style={{ ...styles.statusPill, ...getStatusStyles(order.status) }}>
+                      {getStatusLabel(order.status)}
+                    </span>
                   </div>
 
                   <div style={styles.metaGrid}>
@@ -158,9 +175,18 @@ const styles = {
   list: { display: 'grid', gap: '18px' },
   card: { backgroundColor: '#fff', border: '1px solid #efe4dd', borderRadius: '20px', padding: '24px', boxShadow: '0 18px 40px rgba(34, 18, 11, 0.04)' },
   cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '16px', marginBottom: '18px' },
-  orderLabel: { fontWeight: '700', color: '#222', fontSize: '1.05rem' },
-  orderDate: { marginTop: '6px', color: '#8b847d', fontSize: '0.9rem' },
-  statusPill: { padding: '8px 12px', borderRadius: '999px', backgroundColor: '#fbf1df', color: '#8c5b12', fontSize: '12px', fontWeight: '700', letterSpacing: '0.7px', whiteSpace: 'nowrap' },
+  orderLabel: { 
+    display: 'inline-block',
+    fontWeight: '700', 
+    color: '#fff6eb', 
+    backgroundColor: '#6b1111', 
+    padding: '6px 12px', 
+    borderRadius: '6px', 
+    fontSize: '0.9rem',
+    letterSpacing: '0.5px' 
+  },
+  orderDate: { marginTop: '8px', color: '#8b847d', fontSize: '0.9rem' },
+  statusPill: { padding: '6px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: '700', letterSpacing: '0.5px', whiteSpace: 'nowrap', border: '1px solid transparent' },
   metaGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', marginBottom: '18px' },
   metaItem: { backgroundColor: '#fcfaf8', border: '1px solid #f3ebe5', borderRadius: '14px', padding: '14px' },
   metaLabel: { display: 'block', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: '#b89a5b', fontWeight: '700', marginBottom: '6px' },

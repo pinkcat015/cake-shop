@@ -9,7 +9,10 @@ router.post('/', authenticateToken, orderController.createOrderFromCart);
 // Xem lịch sử đơn hàng của user hiện tại
 router.get('/mine', authenticateToken, orderController.getMyOrders);
 
-// Cập nhật trạng thái (admin)
-router.put('/:id/status', authenticateToken, authorizeRoles(ROLES.ADMIN), orderController.updateOrderStatus);
+// Lấy toàn bộ đơn hàng (admin & employee)
+router.get('/', authenticateToken, authorizeRoles(ROLES.ADMIN, ROLES.EMPLOYEE), orderController.getAllOrders);
+
+// Cập nhật trạng thái (admin & employee)
+router.put('/:id/status', authenticateToken, authorizeRoles(ROLES.ADMIN, ROLES.EMPLOYEE), orderController.updateOrderStatus);
 
 module.exports = router;

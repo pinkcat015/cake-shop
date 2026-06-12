@@ -15,8 +15,11 @@ const findUserById = async (userId) => {
     return rows[0];
 };
 
-const createUser = async (username, hashedPassword, email, roleId) => {
-    const [result] = await db.query('INSERT INTO User (username, password, email, role_id) VALUES (?, ?, ?, ?)', [username, hashedPassword, email, roleId]);
+const createUser = async (username, hashedPassword, email, roleId, verificationToken = null) => {
+    const [result] = await db.query(
+        'INSERT INTO User (username, password, email, role_id, is_verified, verification_token) VALUES (?, ?, ?, ?, ?, ?)',
+        [username, hashedPassword, email, roleId, verificationToken ? 0 : 1, verificationToken]
+    );
     return result.insertId;
 };
 
@@ -29,11 +32,42 @@ const getRoleByName = async (roleName) => {
     return rows[0];
 };
 
+const updateUserResetToken = async (email, token, expiry) => {
+    await db.query('UPDATE User SET reset_token = ?, reset_token_expiry = ? WHERE email = ?', [token, expiry, email]);
+};
+
+const findUserByResetToken = async (email, token) => {
+    const [rows] = await db.query(
+        'SELECT * FROM User WHERE email = ? AND reset_token = ? AND reset_token_expiry > NOW()',
+        [email, token]
+    );
+    return rows[0];
+};
+
+const updateUserPassword = async (email, hashedNewPassword) => {
+    await db.query(
+        'UPDATE User SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE email = ?',
+        [hashedNewPassword, email]
+    );
+};
+
+const verifyUserEmail = async (token) => {
+    const [result] = await db.query(
+        'UPDATE User SET is_verified = 1, verification_token = NULL WHERE verification_token = ? AND is_verified = 0',
+        [token]
+    );
+    return result.affectedRows > 0;
+};
+
 module.exports = {
     findUserByUsername,
     findUserByEmail,
     findUserById,
     createUser,
     updateUserEmail,
-    getRoleByName
+    getRoleByName,
+    updateUserResetToken,
+    findUserByResetToken,
+    updateUserPassword,
+    verifyUserEmail
 };

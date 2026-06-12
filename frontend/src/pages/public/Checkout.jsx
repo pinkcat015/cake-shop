@@ -144,11 +144,15 @@ const Checkout = () => {
         });
       }
 
-      alert(paymentMethod === 'bank_transfer'
-        ? 'Đặt hàng thành công. Vui lòng chuyển khoản để hoàn tất thanh toán.'
-        : 'Đặt hàng và thanh toán thành công!');
-      window.dispatchEvent(new Event('cart-updated'));
-      navigate('/orders');
+      if (paymentMethod === 'bank_transfer') {
+        alert('Đặt hàng thành công. Vui lòng thực hiện chuyển khoản để hoàn tất đơn hàng.');
+        window.dispatchEvent(new Event('cart-updated'));
+        navigate(`/payment-gateway?order_id=${order.order_id}&amount=${payable}`);
+      } else {
+        alert('Đặt hàng và thanh toán thành công!');
+        window.dispatchEvent(new Event('cart-updated'));
+        navigate('/orders');
+      }
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || 'Lỗi khi đặt hàng');

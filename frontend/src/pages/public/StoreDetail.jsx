@@ -40,7 +40,9 @@ const StoreDetail = () => {
   );
 
   const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(store.address)}`;
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`;
+  const directionsUrl = store.latitude && store.longitude
+    ? `https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(store.address)}`;
 
   const isOpen = () => {
     if (!store.open_hours) return true;
@@ -90,7 +92,7 @@ const StoreDetail = () => {
               <div style={styles.mapWrapper}>
                 <iframe
                   style={styles.mapIframe}
-                  src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyDG3_L92Ax3P7iZXe2l7G-qnPQ5JZJIJBo&q=${store.latitude},${store.longitude}`}
+                  src={`https://maps.google.com/maps?q=${store.latitude && store.longitude ? `${store.latitude},${store.longitude}` : encodeURIComponent(store.address)}&hl=vi&z=16&output=embed`}
                   allowFullScreen=""
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
@@ -194,8 +196,8 @@ const styles = {
 
   // CỘT TRÁI
   leftColumn: { display: 'flex', flexDirection: 'column', gap: '30px' },
-  imageContainer: { width: '100%', border: '1px solid #f0f0f0', borderRadius: '4px', overflow: 'hidden' },
-  mainImage: { width: '100%', height: '420px', objectFit: 'cover', display: 'block' },
+  imageContainer: { width: '100%', border: '1px solid #f0ece8', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#faf9f6' },
+  mainImage: { width: '100%', height: '420px', objectFit: 'contain', display: 'block' },
   mapSection: { backgroundColor: '#fafafa', borderLeft: '4px solid #6b1111', padding: '24px', borderRadius: '2px' },
   mapWrapper: { borderRadius: '4px', overflow: 'hidden', marginTop: '12px' },
   mapIframe: { width: '100%', height: '260px', border: 'none', display: 'block' },

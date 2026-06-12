@@ -18,6 +18,13 @@ import EmployeeProducts from './pages/employee/EmployeeProducts';
 import FloatingCart from './components/FloatingCart';
 import CartFlightOverlay from './components/CartFlightOverlay';
 import AdminStores from './pages/admin/AdminStores';
+import ForgotPassword from './pages/public/auth/ForgotPassword';
+import ResetPassword from './pages/public/auth/ResetPassword';
+import VerifyEmail from './pages/public/auth/VerifyEmail';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminOrders from './pages/admin/AdminOrders';
+import AdminVouchers from './pages/admin/AdminVouchers';
+import PaymentGateway from './pages/public/PaymentGateway';
 
 const ProtectedRoute = ({ children, roles }) => {
   const { token, role } = useAuth();
@@ -48,8 +55,24 @@ function App() {
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+            <Route path="/payment-gateway" element={<ProtectedRoute><PaymentGateway /></ProtectedRoute>} />
             <Route path="/locations" element={<Stores />} />
             <Route path="/stores" element={<Stores />} />
+            <Route path="/admin/dashboard" element={
+              <ProtectedRoute roles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/orders" element={
+              <ProtectedRoute roles={['admin', 'employee']}>
+                <AdminOrders />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/vouchers" element={
+              <ProtectedRoute roles={['admin']}>
+                <AdminVouchers />
+              </ProtectedRoute>
+            } />
             <Route path="/admin/stores" element={
               <ProtectedRoute roles={['admin']}>
                 <AdminStores />
@@ -58,6 +81,9 @@ function App() {
             <Route path="/stores/:id" element={<StoreDetail />} />
             <Route path="/locations/:id" element={<StoreDetail />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route

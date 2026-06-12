@@ -21,6 +21,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/stores', require('./routes/stores'));
 app.use('/api/vouchers', require('./routes/vouchers'));
 app.use('/api/payments', require('./routes/payments'));
+app.use('/api/reports', require('./routes/reports'));
 
 app.get('/', (req, res) => {
     res.send('Hello Cake Shop');

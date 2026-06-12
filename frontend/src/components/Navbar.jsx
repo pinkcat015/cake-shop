@@ -9,6 +9,7 @@ const Navbar = () => {
   const [products, setProducts] = useState([]);
   const [isProductsOpen, setIsProductsOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isEmployeeOpen, setIsEmployeeOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -87,6 +88,9 @@ const Navbar = () => {
                   <span style={styles.navItem}>Admin ▾</span>
                   {isAdminOpen && (
                     <div style={styles.dropdown}>
+                      <Link to="/admin/dashboard" style={styles.dropdownItem}>Dashboard</Link>
+                      <Link to="/admin/orders" style={styles.dropdownItem}>Đơn hàng</Link>
+                      <Link to="/admin/vouchers" style={styles.dropdownItem}>Vouchers</Link>
                       <Link to="/admin/products" style={styles.dropdownItem}>Sản phẩm</Link>
                       <Link to="/admin/stores" style={styles.dropdownItem}>Cửa hàng</Link>
                     </div>
@@ -95,7 +99,19 @@ const Navbar = () => {
               )}
 
               {role === 'employee' && (
-                <Link to="/employee/products" style={styles.navItem}>Employee</Link>
+                <div
+                  style={styles.menuWrap}
+                  onMouseEnter={() => setIsEmployeeOpen(true)}
+                  onMouseLeave={() => setIsEmployeeOpen(false)}
+                >
+                  <span style={styles.navItem}>Employee ▾</span>
+                  {isEmployeeOpen && (
+                    <div style={styles.dropdown}>
+                      <Link to="/admin/orders" style={styles.dropdownItem}>Đơn hàng</Link>
+                      <Link to="/employee/products" style={styles.dropdownItem}>Sản phẩm</Link>
+                    </div>
+                  )}
+                </div>
               )}
 
               <Link to="/profile" style={styles.navItem}>Profile</Link>

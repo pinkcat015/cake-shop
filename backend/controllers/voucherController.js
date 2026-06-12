@@ -1,5 +1,5 @@
 const cartModel = require('../models/cartModel');
-const { calculateCartPricing } = require('../models/voucherModel');
+const { calculateCartPricing, getAllVouchers, createVoucher, updateVoucher, deleteVoucher } = require('../models/voucherModel');
 
 const applyVoucher = async (req, res) => {
   try {
@@ -42,4 +42,66 @@ const applyVoucher = async (req, res) => {
   }
 };
 
-module.exports = { applyVoucher };
+const getVouchers = async (req, res) => {
+  try {
+    const vouchers = await getAllVouchers();
+    res.json({ vouchers });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const addVoucher = async (req, res) => {
+  try {
+    const { code, discount, expiry_date } = req.body;
+    if (!code || discount === undefined) {
+      return res.status(400).json({ message: 'Code and discount are required' });
+    }
+    const voucher = await createVoucher(code, discount, expiry_date);
+    res.status(201).json({ message: 'Voucher created successfully', voucher });
+  } catch (error) {
+    console.error(error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ message: 'Voucher code already exists' });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const editVoucher = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { code, discount, expiry_date } = req.body;
+    if (!code || discount === undefined) {
+      return res.status(400).json({ message: 'Code and discount are required' });
+    }
+    const voucher = await updateVoucher(id, code, discount, expiry_date);
+    res.json({ message: 'Voucher updated successfully', voucher });
+  } catch (error) {
+    console.error(error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ message: 'Voucher code already exists' });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const removeVoucher = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await deleteVoucher(id);
+    res.json({ message: 'Voucher deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+module.exports = {
+  applyVoucher,
+  getVouchers,
+  addVoucher,
+  editVoucher,
+  removeVoucher
+};
