@@ -66,19 +66,36 @@ const AdminDashboard = () => {
     const width = 600;
     const height = 220;
     const padding = 35;
-
-    if (!chartData || chartData.length === 0) return { points: '', grid: [] };
-
-    const maxRevenue = Math.max(...chartData.map(d => Number(d.revenue)), 100000);
-    const minRevenue = 0;
-    const revenueRange = maxRevenue - minRevenue;
-
     const chartWidth = width - padding * 2;
     const chartHeight = height - padding * 2;
 
-    const points = chartData.map((d, index) => {
-      const x = padding + (index / (chartData.length - 1)) * chartWidth;
-      const y = padding + chartHeight - ((Number(d.revenue) - minRevenue) / revenueRange) * chartHeight;
+    if (!Array.isArray(chartData) || chartData.length === 0) {
+      return {
+        points: [],
+        pointsString: '',
+        width,
+        height,
+        padding,
+        chartWidth,
+        chartHeight,
+        maxRevenue: 100000,
+      };
+    }
+
+    const cleanData = chartData.map(d => ({
+      date: d.date || '',
+      revenue: Number(d.revenue) && Number(d.revenue) > 0 ? Number(d.revenue) : 0
+    }));
+
+    const maxRevenue = Math.max(...cleanData.map(d => d.revenue), 100000);
+    const minRevenue = 0;
+    const revenueRange = maxRevenue - minRevenue || 100000;
+
+    const points = cleanData.map((d, index) => {
+      const x = cleanData.length <= 1
+        ? padding + chartWidth / 2
+        : padding + (index / (cleanData.length - 1)) * chartWidth;
+      const y = padding + chartHeight - ((d.revenue - minRevenue) / revenueRange) * chartHeight;
       return { x, y, label: d.date, value: d.revenue };
     });
 
@@ -109,7 +126,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div style={styles.adminPage}>
+    <div style={styles.page}>
       <Navbar />
 
       <header style={styles.headerHero}>
@@ -136,8 +153,8 @@ const AdminDashboard = () => {
           </div>
 
           <div style={styles.statCard}>
-            <div style={{ ...styles.iconContainer, backgroundColor: '#eff6ff' }}>
-              <ShoppingBag size={24} color="#1d4ed8" />
+            <div style={{ ...styles.iconContainer, backgroundColor: '#fef2f2' }}>
+              <ShoppingBag size={24} color="#6b1111" />
             </div>
             <div>
               <p style={styles.statLabel}>Tổng Số Đơn Hàng</p>
@@ -146,8 +163,8 @@ const AdminDashboard = () => {
           </div>
 
           <div style={styles.statCard}>
-            <div style={{ ...styles.iconContainer, backgroundColor: '#f0fdf4' }}>
-              <Users size={24} color="#166534" />
+            <div style={{ ...styles.iconContainer, backgroundColor: '#fef2f2' }}>
+              <Users size={24} color="#6b1111" />
             </div>
             <div>
               <p style={styles.statLabel}>Khách Hàng Đăng Ký</p>
@@ -156,8 +173,8 @@ const AdminDashboard = () => {
           </div>
 
           <div style={styles.statCard}>
-            <div style={{ ...styles.iconContainer, backgroundColor: '#fffbeb' }}>
-              <Cake size={24} color="#b45309" />
+            <div style={{ ...styles.iconContainer, backgroundColor: '#fef2f2' }}>
+              <Cake size={24} color="#6b1111" />
             </div>
             <div>
               <p style={styles.statLabel}>Sản Phẩm Trong Kho</p>
@@ -320,7 +337,11 @@ const AdminDashboard = () => {
 };
 
 const styles = {
-  adminPage: { backgroundColor: '#fdfdfd', minHeight: '100vh', fontFamily: "'Montserrat', sans-serif" },
+  page: {
+    backgroundColor: '#f7f5f2',
+    minHeight: '100vh',
+    paddingBottom: '60px',
+  },
   headerHero: { height: '180px', position: 'relative' },
   overlay: {
     position: 'absolute', inset: 0, backgroundColor: '#6b1111',
@@ -336,9 +357,8 @@ const styles = {
     padding: '30px 24px',
   },
   loadingContainer: {
-    backgroundColor: '#fdfdfd',
+    backgroundColor: '#f7f5f2',
     minHeight: '100vh',
-    fontFamily: "'Montserrat', sans-serif",
   },
   spinnerWrapper: {
     display: 'flex',
@@ -408,9 +428,9 @@ const styles = {
   },
   statCard: {
     backgroundColor: '#fff',
-    borderRadius: '8px',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
-    border: '1px solid #eee',
+    borderRadius: '12px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+    border: '1px solid #e8e0d5',
     padding: '24px',
     display: 'flex',
     alignItems: 'center',
@@ -443,10 +463,10 @@ const styles = {
   },
   chartWrapper: {
     backgroundColor: '#fff',
-    borderRadius: '8px',
-    border: '1px solid #eee',
+    borderRadius: '12px',
+    border: '1px solid #e8e0d5',
     padding: '30px',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
   },
   chartContainer: {
     marginTop: '20px',
@@ -490,10 +510,10 @@ const styles = {
   },
   topProductsWrapper: {
     backgroundColor: '#fff',
-    borderRadius: '8px',
-    border: '1px solid #eee',
+    borderRadius: '12px',
+    border: '1px solid #e8e0d5',
     padding: '30px',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
     display: 'flex',
     flexDirection: 'column',
   },
