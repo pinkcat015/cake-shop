@@ -21,7 +21,9 @@ const getActivePromotionsForProducts = async (productIds) => {
       p.name,
       p.discount,
       p.start_date,
-      p.end_date
+      p.end_date,
+      p.start_time,
+      p.end_time
     FROM ProductPromotion pp
     INNER JOIN Promotion p ON p.promotion_id = pp.promotion_id
     WHERE pp.product_id IN (?)
@@ -30,7 +32,42 @@ const getActivePromotionsForProducts = async (productIds) => {
     [productIds]
   );
 
-  return rows;
+  const activePromotions = [];
+  const now = new Date();
+  
+  // Format current local time as 'HH:mm:ss'
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const currentStr = `${hours}:${minutes}:${seconds}`;
+
+  for (const promo of rows) {
+    let isActive = false;
+    const start = promo.start_time; // format 'HH:mm:ss'
+    const end = promo.end_time;     // format 'HH:mm:ss'
+    
+    if (!start || !end) {
+      isActive = true;
+    } else {
+      if (start <= end) {
+        isActive = currentStr >= start && currentStr <= end;
+      } else {
+        // wraps around midnight
+        isActive = currentStr >= start || currentStr <= end;
+      }
+    }
+
+    if (isActive) {
+      activePromotions.push({
+        product_id: promo.product_id,
+        promotion_id: promo.promotion_id,
+        name: promo.name,
+        discount: Number(promo.discount)
+      });
+    }
+  }
+
+  return activePromotions;
 };
 
 const calculateCartPricing = async (items, voucherCode = null) => {

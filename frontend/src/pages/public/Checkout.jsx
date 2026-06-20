@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import api from '../../api/api';
 import Navbar from '../../components/Navbar';
 import { useNavigate } from 'react-router-dom';
+import { getActivePromoForProduct, getScheduledPromoForProduct, getEffectivePrice } from '../../utils/promoUtils';
 
 const Checkout = () => {
   const [items, setItems] = useState([]);
+  const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState('delivery');
@@ -22,8 +24,12 @@ const Checkout = () => {
 
   const loadCart = useCallback(async () => {
     try {
-      const res = await api.get('/cart');
-      setItems(res.data.items || []);
+      const [cartRes, promoRes] = await Promise.all([
+        api.get('/cart'),
+        api.get('/promotions').catch(() => ({ data: { promotions: [] } }))
+      ]);
+      setItems(cartRes.data.items || []);
+      setPromotions(promoRes.data?.promotions || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -314,17 +320,32 @@ const Checkout = () => {
             ) : (
               <div style={styles.orderSummaryFlow}>
                 <div style={styles.itemsWrapper}>
-                  {items.map(it => (
-                    <div key={it.cart_item_id} style={styles.summaryItemRow}>
-                      <div style={styles.itemInfoCell}>
-                        <span style={styles.itemNameText}>{it.name}</span>
-                        <span style={styles.itemQtyText}>Số lượng: {it.quantity}</span>
+                  {items.map(it => {
+                    const activePromo = getActivePromoForProduct(it.product_id, promotions);
+                    const effectivePrice = getEffectivePrice(it, promotions);
+                    return (
+                      <div key={it.cart_item_id} style={styles.summaryItemRow}>
+                        <div style={styles.itemInfoCell}>
+                          <span style={styles.itemNameText}>{it.name}</span>
+                          <span style={styles.itemQtyText}>Số lượng: {it.quantity}</span>
+                        </div>
+                        <div style={styles.itemPriceCell}>
+                          {activePromo ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                              <span style={{ fontSize: '0.75rem', color: '#888', textDecoration: 'line-through' }}>
+                                {(it.price * it.quantity).toLocaleString('vi-VN')} đ
+                              </span>
+                              <span style={{ fontWeight: 'bold', color: '#9b1c1c' }}>
+                                {(effectivePrice * it.quantity).toLocaleString('vi-VN')} đ
+                              </span>
+                            </div>
+                          ) : (
+                            <span>{(it.price * it.quantity).toLocaleString('vi-VN')} đ</span>
+                          )}
+                        </div>
                       </div>
-                      <div style={styles.itemPriceCell}>
-                        {(it.price * it.quantity).toLocaleString('vi-VN')} đ
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div style={styles.calcDivider}></div>

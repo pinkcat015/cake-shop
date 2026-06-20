@@ -89,15 +89,17 @@ const AdminOrders = () => {
   };
 
   return (
-    <div style={styles.page}>
+    <div style={styles.adminPage}>
       <Navbar />
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>Quản Lý Đơn Hàng</h1>
-            <p style={styles.subtitle}>Xem thông tin và xử lý quy trình đơn hàng bánh ngọt</p>
-          </div>
+
+      <header style={styles.headerHero}>
+        <div style={styles.overlay}>
+          <p style={styles.kicker}>Operations Console</p>
+          <h1 style={styles.mainTitle}>QUẢN LÝ ĐƠN HÀNG</h1>
         </div>
+      </header>
+
+      <div style={styles.container}>
 
         {error && <div style={styles.errorAlert}>{error}</div>}
         {success && <div style={styles.successAlert}>{success}</div>}
@@ -316,33 +318,25 @@ const AdminOrders = () => {
 };
 
 const styles = {
-  page: {
-    backgroundColor: '#f7f5f2',
+  adminPage: {
+    backgroundColor: '#fdfdfd',
     minHeight: '100vh',
     paddingBottom: '60px',
+    fontFamily: "'Montserrat', sans-serif"
   },
+  headerHero: { height: '180px', position: 'relative' },
+  overlay: {
+    position: 'absolute', inset: 0, backgroundColor: '#6b1111',
+    backgroundImage: 'linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url("https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=1200")',
+    backgroundSize: 'cover', backgroundPosition: 'center',
+    display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#fff',
+  },
+  mainTitle: { fontFamily: "'Playfair Display', serif", fontSize: '2.2rem', color: '#fff', margin: 0 },
+  kicker: { textTransform: 'uppercase', letterSpacing: '3px', fontSize: '0.75rem', marginBottom: '15px' },
   container: {
     maxWidth: '1200px',
     margin: '0 auto',
-    padding: '30px 24px',
-  },
-  header: {
-    marginBottom: '25px',
-    borderBottom: '1px solid #e8e0d5',
-    paddingBottom: '15px',
-  },
-  title: {
-    fontSize: '32px',
-    fontWeight: '700',
-    color: '#6b1111',
-    fontFamily: 'serif',
-    margin: 0,
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: '#666',
-    marginTop: '5px',
-    marginBottom: 0,
+    padding: '30px 20px',
   },
   errorAlert: {
     backgroundColor: '#fdf2f2',
@@ -371,7 +365,7 @@ const styles = {
   filterBtn: {
     padding: '8px 16px',
     borderRadius: '20px',
-    border: '1px solid #e8e0d5',
+    border: '1px solid #eee',
     backgroundColor: '#fff',
     color: '#555',
     fontSize: '13px',
@@ -397,9 +391,9 @@ const styles = {
   // We handle grid layout inline/responsively
   tableCard: {
     backgroundColor: '#fff',
-    borderRadius: '12px',
-    border: '1px solid #e8e0d5',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+    borderRadius: '8px',
+    border: '1px solid #eee',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
     overflowX: 'auto',
   },
   tableLoading: {
@@ -472,7 +466,7 @@ const styles = {
     gap: '6px',
     padding: '6px 12px',
     borderRadius: '4px',
-    border: '1px solid #e8e0d5',
+    border: '1px solid #eee',
     backgroundColor: '#fff',
     color: '#6b1111',
     cursor: 'pointer',
@@ -485,10 +479,9 @@ const styles = {
   },
   detailsCard: {
     backgroundColor: '#fff',
-    borderRadius: '12px',
-    border: '1px solid #e8e0d5',
-    boxShadow: '0 4px 25px rgba(0,0,0,0.06)',
-    padding: '24px',
+    borderRadius: '8px',
+    border: '1px solid #eee',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
     position: 'sticky',
     top: '100px',
   },

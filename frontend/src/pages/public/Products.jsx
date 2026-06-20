@@ -3,11 +3,13 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import api, { toAssetUrl } from '../../api/api';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
+import { getActivePromoForProduct, getScheduledPromoForProduct, getEffectivePrice } from '../../utils/promoUtils';
 
 const Products = () => {
   const { role } = useAuth();
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
+  const [promotions, setPromotions] = useState([]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || 'all');
   const [priceFilter, setPriceFilter] = useState('all');
@@ -27,17 +29,21 @@ const Products = () => {
   ];
 
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadData = async () => {
       try {
-        const response = await api.get('/products');
-        setProducts(response.data || []);
+        const [prodRes, promoRes] = await Promise.all([
+          api.get('/products'),
+          api.get('/promotions').catch(() => ({ data: { promotions: [] } }))
+        ]);
+        setProducts(prodRes.data || []);
+        setPromotions(promoRes.data?.promotions || []);
       } catch (err) {
-        setError(err.response?.data?.message || 'Không thể tải danh sách sản phẩm');
+        setError(err.response?.data?.message || 'Không thể tải dữ liệu sản phẩm');
       } finally {
         setLoading(false);
       }
     };
-    loadProducts();
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -158,84 +164,111 @@ const Products = () => {
 
         {/* Grid Sản phẩm - Balanced Spacing */}
         <section style={styles.grid}>
-          {filteredProducts.map((item) => (
-            <article 
-              key={item.product_id} 
-              style={{
-                ...styles.card,
-                transform: hoveredId === item.product_id ? 'translateY(-10px)' : 'none',
-                boxShadow: hoveredId === item.product_id ? '0 20px 40px rgba(0,0,0,0.08)' : '0 2px 10px rgba(0,0,0,0.03)'
-              }}
-              onMouseEnter={() => setHoveredId(item.product_id)}
-              onMouseLeave={() => setHoveredId(null)}
-            >
-              <div style={styles.imageWrap}>
-                {item.image ? (
-                  <img 
-                    src={toAssetUrl(item.image)} 
-                    alt={item.name} 
-                    style={{
-                      ...styles.img,
-                      transform: hoveredId === item.product_id ? 'scale(1.1)' : 'scale(1)'
-                    }} 
-                  />
-                ) : (
-                  <div style={styles.emptyImg}>TOUS les JOURS</div>
-                )}
-                <div style={{
-                  ...styles.badge, 
-                  backgroundColor: item.status === 'ACTIVE' ? '#28a745' : '#888'
-                }}>
-                  {item.status === 'ACTIVE' ? 'Còn hàng' : 'Hết hàng'}
+          {filteredProducts.map((item) => {
+            const activePromo = getActivePromoForProduct(item.product_id, promotions);
+            const scheduledPromo = getScheduledPromoForProduct(item.product_id, promotions);
+            return (
+              <article 
+                key={item.product_id} 
+                style={{
+                  ...styles.card,
+                  transform: hoveredId === item.product_id ? 'translateY(-10px)' : 'none',
+                  boxShadow: hoveredId === item.product_id ? '0 20px 40px rgba(0,0,0,0.08)' : '0 2px 10px rgba(0,0,0,0.03)'
+                }}
+                onMouseEnter={() => setHoveredId(item.product_id)}
+                onMouseLeave={() => setHoveredId(null)}
+              >
+                <div style={styles.imageWrap}>
+                  {item.image ? (
+                    <img 
+                      src={toAssetUrl(item.image)} 
+                      alt={item.name} 
+                      style={{
+                        ...styles.img,
+                        transform: hoveredId === item.product_id ? 'scale(1.1)' : 'scale(1)'
+                      }} 
+                    />
+                  ) : (
+                    <div style={styles.emptyImg}>TOUS les JOURS</div>
+                  )}
+                  <div style={{
+                    ...styles.badge, 
+                    backgroundColor: item.status === 'ACTIVE' ? '#28a745' : '#888'
+                  }}>
+                    {item.status === 'ACTIVE' ? 'Còn hàng' : 'Hết hàng'}
+                  </div>
                 </div>
-              </div>
 
-              <div style={styles.cardContent}>
-                <p style={styles.cardCategory}>{item.category || 'Bakery'}</p>
-                <h3 style={styles.cardName}>{item.name}</h3>
-                <p style={styles.cardDesc}>{item.description || 'Hương vị thơm ngon truyền thống từ những nghệ nhân làm bánh.'}</p>
-                <div style={styles.cardBottom}>
-                  <div style={styles.priceContainer}>
-                    <span style={styles.priceLabel}>Giá từ</span>
-                    <strong style={styles.price}>{Number(item.price).toLocaleString('vi-VN')} đ</strong>
+                <div style={styles.cardContent}>
+                  <p style={styles.cardCategory}>
+                    {item.category || 'Bakery'}
+                    {activePromo && (
+                      <span style={{ marginLeft: 8, padding: '2px 6px', backgroundColor: '#fff0f0', color: '#9b1c1c', border: '1px solid #ffcccc', borderRadius: 4, fontSize: '0.65rem', fontWeight: 'bold' }}>
+                        -{activePromo.discount}% HAPPY HOUR
+                      </span>
+                    )}
+                    {scheduledPromo && (
+                      <span style={{ marginLeft: 8, padding: '2px 6px', backgroundColor: '#f5f5f5', color: '#666', border: '1px solid #ddd', borderRadius: 4, fontSize: '0.65rem', fontWeight: '500' }}>
+                        Happy Hour -{scheduledPromo.discount}% ({scheduledPromo.start_time?.slice(0, 5)}-{scheduledPromo.end_time?.slice(0, 5)})
+                      </span>
+                    )}
+                  </p>
+                  <h3 style={styles.cardName}>{item.name}</h3>
+                  <p style={styles.cardDesc}>{item.description || 'Hương vị thơm ngon truyền thống từ những nghệ nhân làm bánh.'}</p>
+                  <div style={styles.cardBottom}>
+                    <div style={styles.priceContainer}>
+                      <span style={styles.priceLabel}>Giá từ</span>
+                      {activePromo ? (
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#888', textDecoration: 'line-through' }}>
+                            {Number(item.price).toLocaleString('vi-VN')} đ
+                          </span>
+                          <strong style={{ ...styles.price, color: '#9b1c1c' }}>
+                            {getEffectivePrice(item, promotions).toLocaleString('vi-VN')} đ
+                          </strong>
+                        </div>
+                      ) : (
+                        <strong style={styles.price}>{Number(item.price).toLocaleString('vi-VN')} đ</strong>
+                      )}
+                    </div>
+                    <div style={{display:'flex', gap:10, alignItems:'center'}}>
+                      <Link to={`/products/${item.product_id}`} style={styles.detailLink}>
+                        XEM THÊM
+                      </Link>
+                      <button
+                        onClick={async (e) => {
+                          try {
+                            setMsgMap((m) => ({ ...m, [item.product_id]: '' }));
+                            setAddingMap((m) => ({ ...m, [item.product_id]: true }));
+                            const token = localStorage.getItem('token');
+                            if (!token) return navigate('/login');
+                            const rect = e.currentTarget?.getBoundingClientRect?.();
+                            await api.post('/cart/add', { product_id: item.product_id, quantity: 1 });
+                            setMsgMap((m) => ({ ...m, [item.product_id]: 'Đã thêm' }));
+                            window.dispatchEvent(new CustomEvent('cart-added', {
+                              detail: rect ? { sourceRect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, quantity: 1 } : { quantity: 1 }
+                            }));
+                            window.dispatchEvent(new Event('cart-updated'));
+                          } catch (err) {
+                            console.error(err);
+                            setMsgMap((m) => ({ ...m, [item.product_id]: err.response?.data?.message || 'Không thể thêm vào giỏ' }));
+                          } finally {
+                            setAddingMap((m) => ({ ...m, [item.product_id]: false }));
+                            setTimeout(() => setMsgMap((m) => ({ ...m, [item.product_id]: '' })), 2200);
+                          }
+                        }}
+                        disabled={Boolean(addingMap[item.product_id])}
+                        style={{ padding: '8px 12px', backgroundColor: '#6b1111', color: '#fff', border: 'none', cursor: 'pointer', fontWeight:700 }}
+                      >
+                        {addingMap[item.product_id] ? 'ĐANG...' : 'THÊM'}
+                      </button>
+                    </div>
+                    {msgMap[item.product_id] && <div style={{marginTop:6, fontSize:12, color: msgMap[item.product_id].startsWith('Đã') ? '#2f7a2f' : '#a12f2f'}}>{msgMap[item.product_id]}</div>}
                   </div>
-                  <div style={{display:'flex', gap:10, alignItems:'center'}}>
-                    <Link to={`/products/${item.product_id}`} style={styles.detailLink}>
-                      XEM THÊM
-                    </Link>
-                    <button
-                      onClick={async (e) => {
-                        try {
-                          setMsgMap((m) => ({ ...m, [item.product_id]: '' }));
-                          setAddingMap((m) => ({ ...m, [item.product_id]: true }));
-                          const token = localStorage.getItem('token');
-                          if (!token) return navigate('/login');
-                          const rect = e.currentTarget?.getBoundingClientRect?.();
-                          await api.post('/cart/add', { product_id: item.product_id, quantity: 1 });
-                          setMsgMap((m) => ({ ...m, [item.product_id]: 'Đã thêm' }));
-                          window.dispatchEvent(new CustomEvent('cart-added', {
-                            detail: rect ? { sourceRect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, quantity: 1 } : { quantity: 1 }
-                          }));
-                          window.dispatchEvent(new Event('cart-updated'));
-                        } catch (err) {
-                          console.error(err);
-                          setMsgMap((m) => ({ ...m, [item.product_id]: err.response?.data?.message || 'Không thể thêm vào giỏ' }));
-                        } finally {
-                          setAddingMap((m) => ({ ...m, [item.product_id]: false }));
-                          setTimeout(() => setMsgMap((m) => ({ ...m, [item.product_id]: '' })), 2200);
-                        }
-                      }}
-                      disabled={Boolean(addingMap[item.product_id])}
-                      style={{ padding: '8px 12px', backgroundColor: '#6b1111', color: '#fff', border: 'none', cursor: 'pointer', fontWeight:700 }}
-                    >
-                      {addingMap[item.product_id] ? 'ĐANG...' : 'THÊM'}
-                    </button>
-                  </div>
-                  {msgMap[item.product_id] && <div style={{marginTop:6, fontSize:12, color: msgMap[item.product_id].startsWith('Đã') ? '#2f7a2f' : '#a12f2f'}}>{msgMap[item.product_id]}</div>}
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </section>
       </main>
     </div>

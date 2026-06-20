@@ -26,11 +26,6 @@ const Home = () => {
 
       {/* 3. Quick Navigation (Hệ thống phân quyền hiển thị ở đây) */}
       <section style={styles.quickNav}>
-        {user?.role_name === 'admin' && (
-          <div style={styles.adminAlert}>
-            Bạn đang đăng nhập với quyền <strong>Quản trị viên</strong>. <Link to="/admin/products">Đi tới bảng điều khiển</Link>
-          </div>
-        )}
         {user?.role_name === 'employee' && (
           <div style={styles.adminAlert}>
             Bạn đang đăng nhập với quyền <strong>Nhân viên</strong>. <Link to="/employee/products">Đi tới màn hình vận hành</Link>

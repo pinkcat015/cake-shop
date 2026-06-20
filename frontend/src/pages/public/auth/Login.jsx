@@ -87,6 +87,12 @@ const Login = () => {
                 />
               </label>
 
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-8px', marginBottom: '8px' }}>
+                <Link to="/forgot-password" style={styles.forgotLink}>
+                  Quên mật khẩu?
+                </Link>
+              </div>
+
               <button type="submit" style={styles.primaryButton}>
                 Login
               </button>
@@ -249,6 +255,13 @@ const styles = {
     color: '#8c1f28',
     fontWeight: 700,
     textDecoration: 'none',
+  },
+  forgotLink: {
+    color: '#8c1f28',
+    fontSize: '14px',
+    fontWeight: 700,
+    textDecoration: 'none',
+    fontFamily: "'Manrope', sans-serif",
   },
 };
 

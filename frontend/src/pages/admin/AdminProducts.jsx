@@ -225,7 +225,7 @@ const AdminProducts = ({ canDelete = true, panelType = 'admin' }) => {
       <header style={styles.headerHero}>
         <div style={styles.overlay}>
           <p style={styles.kicker}>{panelType === 'employee' ? 'Operations Console' : 'Backoffice Management'}</p>
-          <h1 style={styles.mainTitle}>{panelType === 'employee' ? 'ĐIỀU PHỐI SẢN PHẨM' : 'QUẢN LÝ CỬA HÀNG'}</h1>
+          <h1 style={styles.mainTitle}>{panelType === 'employee' ? 'ĐIỀU PHỐI SẢN PHẨM' : 'QUẢN LÝ SẢN PHẨM'}</h1>
         </div>
       </header>
 

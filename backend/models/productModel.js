@@ -7,8 +7,8 @@ const getAllProducts = async () => {
             p.product_id,
             p.name,
             p.price,
-                    p.description,
-                    p.ingredients,
+            p.description,
+            p.ingredients,
             p.image,
             p.category_id,
             c.name AS category,
@@ -16,13 +16,24 @@ const getAllProducts = async () => {
             CASE
                 WHEN IFNULL(i.quantity, 0) > 0 THEN 'ACTIVE'
                 ELSE 'OUT_OF_STOCK'
-            END AS status
+            END AS status,
+            IFNULL(r.average_rating, 0) AS average_rating,
+            IFNULL(r.total_reviews, 0) AS total_reviews
         FROM Product p
         LEFT JOIN Category c ON c.category_id = p.category_id
         LEFT JOIN Inventory i ON i.product_id = p.product_id
+        LEFT JOIN (
+            SELECT product_id, ROUND(AVG(rating), 1) AS average_rating, COUNT(*) AS total_reviews
+            FROM Review
+            GROUP BY product_id
+        ) r ON r.product_id = p.product_id
         ORDER BY p.product_id DESC`
     );
-    return rows;
+    return rows.map(row => ({
+        ...row,
+        average_rating: parseFloat(row.average_rating),
+        total_reviews: parseInt(row.total_reviews, 10)
+    }));
 };
 
 const getProductById = async (productId) => {
@@ -41,14 +52,26 @@ const getProductById = async (productId) => {
             CASE
                 WHEN IFNULL(i.quantity, 0) > 0 THEN 'ACTIVE'
                 ELSE 'OUT_OF_STOCK'
-            END AS status
+            END AS status,
+            IFNULL(r.average_rating, 0) AS average_rating,
+            IFNULL(r.total_reviews, 0) AS total_reviews
         FROM Product p
         LEFT JOIN Category c ON c.category_id = p.category_id
         LEFT JOIN Inventory i ON i.product_id = p.product_id
+        LEFT JOIN (
+            SELECT product_id, ROUND(AVG(rating), 1) AS average_rating, COUNT(*) AS total_reviews
+            FROM Review
+            GROUP BY product_id
+        ) r ON r.product_id = p.product_id
         WHERE p.product_id = ?`,
         [productId]
     );
-    return rows[0];
+    if (!rows[0]) return null;
+    return {
+        ...rows[0],
+        average_rating: parseFloat(rows[0].average_rating),
+        total_reviews: parseInt(rows[0].total_reviews, 10)
+    };
 };
 
 const findOrCreateCategoryId = async (categoryName) => {

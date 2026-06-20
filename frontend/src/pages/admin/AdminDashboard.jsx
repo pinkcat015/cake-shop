@@ -109,16 +109,17 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div style={styles.page}>
+    <div style={styles.adminPage}>
       <Navbar />
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>Bảng Điều Khiển Quản Trị</h1>
-            <p style={styles.subtitle}>Scarlett Cake Shop - Báo cáo doanh số và hiệu suất cửa hàng</p>
-          </div>
-          <span style={styles.badge}>Chế độ Admin</span>
+
+      <header style={styles.headerHero}>
+        <div style={styles.overlay}>
+          <p style={styles.kicker}>Backoffice Management</p>
+          <h1 style={styles.mainTitle}>BẢNG ĐIỀU KHIỂN QUẢN TRỊ</h1>
         </div>
+      </header>
+
+      <div style={styles.container}>
 
         {error && <div style={styles.errorAlert}>{error}</div>}
 
@@ -319,19 +320,25 @@ const AdminDashboard = () => {
 };
 
 const styles = {
-  page: {
-    backgroundColor: '#f7f5f2',
-    minHeight: '100vh',
-    paddingBottom: '60px',
+  adminPage: { backgroundColor: '#fdfdfd', minHeight: '100vh', fontFamily: "'Montserrat', sans-serif" },
+  headerHero: { height: '180px', position: 'relative' },
+  overlay: {
+    position: 'absolute', inset: 0, backgroundColor: '#6b1111',
+    backgroundImage: 'linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url("https://images.unsplash.com/photo-1488477181946-6428a0291777?q=80&w=1200")',
+    backgroundSize: 'cover', backgroundPosition: 'center',
+    display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#fff',
   },
+  mainTitle: { fontFamily: "'Playfair Display', serif", fontSize: '2.2rem', color: '#fff', margin: 0 },
+  kicker: { textTransform: 'uppercase', letterSpacing: '3px', fontSize: '0.75rem', marginBottom: '15px' },
   container: {
     maxWidth: '1200px',
     margin: '0 auto',
     padding: '30px 24px',
   },
   loadingContainer: {
-    backgroundColor: '#f7f5f2',
+    backgroundColor: '#fdfdfd',
     minHeight: '100vh',
+    fontFamily: "'Montserrat', sans-serif",
   },
   spinnerWrapper: {
     display: 'flex',
@@ -401,9 +408,9 @@ const styles = {
   },
   statCard: {
     backgroundColor: '#fff',
-    borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-    border: '1px solid #e8e0d5',
+    borderRadius: '8px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+    border: '1px solid #eee',
     padding: '24px',
     display: 'flex',
     alignItems: 'center',
@@ -436,10 +443,10 @@ const styles = {
   },
   chartWrapper: {
     backgroundColor: '#fff',
-    borderRadius: '12px',
-    border: '1px solid #e8e0d5',
+    borderRadius: '8px',
+    border: '1px solid #eee',
     padding: '30px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
   },
   chartContainer: {
     marginTop: '20px',
@@ -483,10 +490,10 @@ const styles = {
   },
   topProductsWrapper: {
     backgroundColor: '#fff',
-    borderRadius: '12px',
-    border: '1px solid #e8e0d5',
+    borderRadius: '8px',
+    border: '1px solid #eee',
     padding: '30px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
     display: 'flex',
     flexDirection: 'column',
   },

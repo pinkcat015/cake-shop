@@ -24,8 +24,7 @@ const Register = () => {
     e.preventDefault();
     try {
       await api.post('/auth/register', formData);
-      // After register, redirect to login
-      navigate('/login');
+      navigate('/register-success', { state: { email: formData.email } });
     } catch (error) {
       setError(error.response?.data?.message || 'Registration failed');
     }

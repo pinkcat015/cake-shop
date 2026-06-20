@@ -3,11 +3,13 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import api, { toAssetUrl } from '../../api/api';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
+import { getActivePromoForProduct, getScheduledPromoForProduct, getEffectivePrice } from '../../utils/promoUtils';
 
 const CategoryProducts = () => {
   const { categoryName } = useParams();
   const { role } = useAuth();
   const [products, setProducts] = useState([]);
+  const [promotions, setPromotions] = useState([]);
   const [search, setSearch] = useState('');
   const [priceFilter, setPriceFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -28,8 +30,12 @@ const CategoryProducts = () => {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const response = await api.get('/products');
-        setProducts(response.data || []);
+        const [prodRes, promoRes] = await Promise.all([
+          api.get('/products'),
+          api.get('/promotions').catch(() => ({ data: { promotions: [] } }))
+        ]);
+        setProducts(prodRes.data || []);
+        setPromotions(promoRes.data?.promotions || []);
       } catch (err) {
         setError(err.response?.data?.message || 'Không thể tải danh sách sản phẩm');
       } finally {
@@ -129,48 +135,74 @@ const CategoryProducts = () => {
 
         {/* Grid */}
         <section style={styles.grid}>
-          {filteredProducts.map((item) => (
-            <article
-              key={item.product_id}
-              style={{
-                ...styles.card,
-                transform: hoveredId === item.product_id ? 'translateY(-10px)' : 'none',
-                boxShadow: hoveredId === item.product_id ? '0 20px 40px rgba(0,0,0,0.08)' : '0 2px 10px rgba(0,0,0,0.03)',
-              }}
-              onMouseEnter={() => setHoveredId(item.product_id)}
-              onMouseLeave={() => setHoveredId(null)}
-            >
-              <div style={styles.imageWrap}>
-                {item.image ? (
-                  <img
-                    src={toAssetUrl(item.image)}
-                    alt={item.name}
-                    style={{
-                      ...styles.img,
-                      transform: hoveredId === item.product_id ? 'scale(1.1)' : 'scale(1)',
-                    }}
-                  />
-                ) : (
-                  <div style={styles.emptyImg}>SCARLETT</div>
-                )}
-                <div style={{
-                  ...styles.badge,
-                  backgroundColor: item.status === 'ACTIVE' ? '#28a745' : '#888',
-                }}>
-                  {item.status === 'ACTIVE' ? 'Còn hàng' : 'Hết hàng'}
-                </div>
-              </div>
-
-              <div style={styles.cardContent}>
-                <p style={styles.cardCategory}>{item.category || 'Bakery'}</p>
-                <h3 style={styles.cardName}>{item.name}</h3>
-                <p style={styles.cardDesc}>{item.description || 'Hương vị thơm ngon truyền thống từ những nghệ nhân làm bánh.'}</p>
-                <div style={styles.cardBottom}>
-                  <div style={styles.priceContainer}>
-                    <span style={styles.priceLabel}>Giá từ</span>
-                    <strong style={styles.price}>{Number(item.price).toLocaleString('vi-VN')} đ</strong>
+          {filteredProducts.map((item) => {
+            const activePromo = getActivePromoForProduct(item.product_id, promotions);
+            const scheduledPromo = getScheduledPromoForProduct(item.product_id, promotions);
+            return (
+              <article
+                key={item.product_id}
+                style={{
+                  ...styles.card,
+                  transform: hoveredId === item.product_id ? 'translateY(-10px)' : 'none',
+                  boxShadow: hoveredId === item.product_id ? '0 20px 40px rgba(0,0,0,0.08)' : '0 2px 10px rgba(0,0,0,0.03)',
+                }}
+                onMouseEnter={() => setHoveredId(item.product_id)}
+                onMouseLeave={() => setHoveredId(null)}
+              >
+                <div style={styles.imageWrap}>
+                  {item.image ? (
+                    <img
+                      src={toAssetUrl(item.image)}
+                      alt={item.name}
+                      style={{
+                        ...styles.img,
+                        transform: hoveredId === item.product_id ? 'scale(1.1)' : 'scale(1)',
+                      }}
+                    />
+                  ) : (
+                    <div style={styles.emptyImg}>SCARLETT</div>
+                  )}
+                  <div style={{
+                    ...styles.badge,
+                    backgroundColor: item.status === 'ACTIVE' ? '#28a745' : '#888',
+                  }}>
+                    {item.status === 'ACTIVE' ? 'Còn hàng' : 'Hết hàng'}
                   </div>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                </div>
+
+                <div style={styles.cardContent}>
+                  <p style={styles.cardCategory}>
+                    {item.category || 'Bakery'}
+                    {activePromo && (
+                      <span style={{ marginLeft: 8, padding: '2px 6px', backgroundColor: '#fff0f0', color: '#9b1c1c', border: '1px solid #ffcccc', borderRadius: 4, fontSize: '0.65rem', fontWeight: 'bold' }}>
+                        -{activePromo.discount}% HAPPY HOUR
+                      </span>
+                    )}
+                    {scheduledPromo && (
+                      <span style={{ marginLeft: 8, padding: '2px 6px', backgroundColor: '#f5f5f5', color: '#666', border: '1px solid #ddd', borderRadius: 4, fontSize: '0.65rem', fontWeight: '500' }}>
+                        Happy Hour -{scheduledPromo.discount}% ({scheduledPromo.start_time?.slice(0, 5)}-{scheduledPromo.end_time?.slice(0, 5)})
+                      </span>
+                    )}
+                  </p>
+                  <h3 style={styles.cardName}>{item.name}</h3>
+                  <p style={styles.cardDesc}>{item.description || 'Hương vị thơm ngon truyền thống từ những nghệ nhân làm bánh.'}</p>
+                  <div style={styles.cardBottom}>
+                    <div style={styles.priceContainer}>
+                      <span style={styles.priceLabel}>Giá từ</span>
+                      {activePromo ? (
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#888', textDecoration: 'line-through' }}>
+                            {Number(item.price).toLocaleString('vi-VN')} đ
+                          </span>
+                          <strong style={{ ...styles.price, color: '#9b1c1c' }}>
+                            {getEffectivePrice(item, promotions).toLocaleString('vi-VN')} đ
+                          </strong>
+                        </div>
+                      ) : (
+                        <strong style={styles.price}>{Number(item.price).toLocaleString('vi-VN')} đ</strong>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <Link to={`/products/${item.product_id}`} style={styles.detailLink}>
                       XEM THÊM
                     </Link>
@@ -210,7 +242,8 @@ const CategoryProducts = () => {
                 </div>
               </div>
             </article>
-          ))}
+          );
+        })}
         </section>
       </main>
     </div>

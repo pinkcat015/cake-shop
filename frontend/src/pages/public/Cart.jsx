@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api, { toAssetUrl } from '../../api/api';
 import Navbar from '../../components/Navbar';
+import { getActivePromoForProduct, getScheduledPromoForProduct, getEffectivePrice } from '../../utils/promoUtils';
 
 const Cart = () => {
   const [items, setItems] = useState([]);
+  const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -19,7 +21,18 @@ const Cart = () => {
     }
   };
 
-  useEffect(() => { loadCart(); }, []);
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const promoRes = await api.get('/promotions').catch(() => ({ data: { promotions: [] } }));
+        setPromotions(promoRes.data?.promotions || []);
+      } catch (err) {
+        console.error(err);
+      }
+      await loadCart();
+    };
+    init();
+  }, []);
 
   const updateQty = async (product_id, qty) => {
     if (qty < 1) return; // Tránh số lượng bằng 0 hoặc âm
@@ -43,7 +56,7 @@ const Cart = () => {
     }
   };
 
-  const subtotal = items.reduce((s, it) => s + (it.price || 0) * (it.quantity || 0), 0);
+  const subtotal = items.reduce((s, it) => s + getEffectivePrice(it, promotions) * (it.quantity || 0), 0);
 
   if (loading) return (
     <div style={styles.page}>
@@ -69,36 +82,56 @@ const Cart = () => {
           <div style={styles.cartLayout}>
             {/* DANH SÁCH MÓN ĂN */}
             <div style={styles.itemsSection}>
-              {items.map(item => (
-                <div key={item.cart_item_id} style={styles.cartRow}>
-                  <div style={styles.imgWrap}>
-                    <img src={toAssetUrl(item.image)} alt={item.name} style={styles.image} />
-                  </div>
-                  
-                  <div style={styles.itemDetails}>
-                    <div style={styles.itemName}>{item.name}</div>
-                    <div style={styles.itemCategory}>{item.category || 'Bakery'}</div>
-                    <div style={styles.itemPrice}>{Number(item.price).toLocaleString('vi-VN')} đ</div>
-                  </div>
+              {items.map(item => {
+                const activePromo = getActivePromoForProduct(item.product_id, promotions);
+                const effectivePrice = getEffectivePrice(item, promotions);
+                return (
+                  <div key={item.cart_item_id} style={styles.cartRow}>
+                    <div style={styles.imgWrap}>
+                      <img src={toAssetUrl(item.image)} alt={item.name} style={styles.image} />
+                    </div>
+                    
+                    <div style={styles.itemDetails}>
+                      <div style={styles.itemName}>{item.name}</div>
+                      <div style={styles.itemCategory}>{item.category || 'Bakery'}</div>
+                      <div style={styles.itemPrice}>
+                        {activePromo ? (
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#888', textDecoration: 'line-through' }}>
+                              {Number(item.price).toLocaleString('vi-VN')} đ
+                            </span>
+                            <strong style={{ color: '#9b1c1c' }}>
+                              {effectivePrice.toLocaleString('vi-VN')} đ
+                            </strong>
+                            <span style={{ fontSize: '0.65rem', color: '#9b1c1c', fontWeight: 'bold' }}>
+                              -{activePromo.discount}% Happy Hour
+                            </span>
+                          </div>
+                        ) : (
+                          <span>{Number(item.price).toLocaleString('vi-VN')} đ</span>
+                        )}
+                      </div>
+                    </div>
 
-                  <div style={styles.quantityControls}>
-                    <button onClick={() => updateQty(item.product_id, item.quantity - 1)} style={styles.qtyBtn}>-</button>
-                    <input 
-                      type="number" 
-                      value={item.quantity} 
-                      readOnly
-                      style={styles.qtyInput} 
-                    />
-                    <button onClick={() => updateQty(item.product_id, item.quantity + 1)} style={styles.qtyBtn}>+</button>
-                  </div>
+                    <div style={styles.quantityControls}>
+                      <button onClick={() => updateQty(item.product_id, item.quantity - 1)} style={styles.qtyBtn}>-</button>
+                      <input 
+                        type="number" 
+                        value={item.quantity} 
+                        readOnly
+                        style={styles.qtyInput} 
+                      />
+                      <button onClick={() => updateQty(item.product_id, item.quantity + 1)} style={styles.qtyBtn}>+</button>
+                    </div>
 
-                  <div style={styles.itemTotal}>
-                    {(item.price * item.quantity).toLocaleString('vi-VN')} đ
-                  </div>
+                    <div style={styles.itemTotal}>
+                      {(effectivePrice * item.quantity).toLocaleString('vi-VN')} đ
+                    </div>
 
-                  <button onClick={() => removeItem(item.product_id)} style={styles.removeBtn}>✕</button>
-                </div>
-              ))}
+                    <button onClick={() => removeItem(item.product_id)} style={styles.removeBtn}>✕</button>
+                  </div>
+                );
+              })}
             </div>
 
             {/* PHẦN TỔNG KẾT (SIDEBAR) */}

@@ -45,23 +45,63 @@ const getStatusStyles = (status) => {
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
+  const [myReviews, setMyReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const loadOrders = async () => {
-      try {
-        const response = await api.get('/orders/mine');
-        setOrders(response.data.orders || []);
-      } catch (err) {
-        setError(err.response?.data?.message || 'Không thể tải danh sách đơn hàng');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Modal states for rating/feedback
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedItemForReview, setSelectedItemForReview] = useState(null);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState('');
 
-    loadOrders();
+  const loadOrdersAndReviews = async () => {
+    try {
+      const [ordersRes, reviewsRes] = await Promise.all([
+        api.get('/orders/mine'),
+        api.get('/reviews/user').catch(() => ({ data: { reviews: [] } }))
+      ]);
+      setOrders(ordersRes.data.orders || []);
+      setMyReviews(reviewsRes.data.reviews || []);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể tải danh sách đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrdersAndReviews();
   }, []);
+
+  const submitReview = async () => {
+    if (!selectedItemForReview) return;
+    if (!comment.trim()) {
+      setReviewError('Vui lòng nhập nội dung nhận xét');
+      return;
+    }
+    setReviewError('');
+    setSubmittingReview(true);
+    try {
+      await api.post('/reviews', {
+        product_id: selectedItemForReview.product_id,
+        order_id: selectedItemForReview.order_id,
+        rating,
+        comment: comment.trim()
+      });
+      // reload reviews
+      const reviewsRes = await api.get('/reviews/user').catch(() => ({ data: { reviews: [] } }));
+      setMyReviews(reviewsRes.data.reviews || []);
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      setReviewError(err.response?.data?.message || 'Gửi đánh giá thất bại');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   return (
     <div style={styles.page}>
@@ -131,27 +171,123 @@ const Orders = () => {
                   <div style={styles.itemsSection}>
                     <div style={styles.itemsTitle}>Món trong đơn</div>
                     <div style={styles.itemsGrid}>
-                      {(order.items || []).map((item) => (
-                        <div key={`${order.order_id}-${item.product_id}`} style={styles.itemRow}>
-                          <div style={styles.thumbWrap}>
-                            {item.image ? (
-                              <img src={toAssetUrl(item.image)} alt={item.name} style={styles.thumb} />
-                            ) : (
-                              <div style={styles.thumbFallback}>SC</div>
-                            )}
+                      {(order.items || []).map((item) => {
+                        const hasReviewed = myReviews.some(
+                          (r) => r.product_id === item.product_id && r.order_id === order.order_id
+                        );
+                        return (
+                          <div key={`${order.order_id}-${item.product_id}`} style={styles.itemRow}>
+                            <div style={styles.thumbWrap}>
+                              {item.image ? (
+                                <img src={toAssetUrl(item.image)} alt={item.name} style={styles.thumb} />
+                              ) : (
+                                <div style={styles.thumbFallback}>SC</div>
+                              )}
+                            </div>
+                            <div style={styles.itemInfo}>
+                              <div style={styles.itemName}>{item.name}</div>
+                              <div style={styles.itemQty}>x{item.quantity}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                              <div style={styles.itemPrice}>
+                                {Number(item.price * item.quantity).toLocaleString('vi-VN')} đ
+                              </div>
+                              {order.status === 'DELIVERED' && (
+                                <div>
+                                  {hasReviewed ? (
+                                    <span style={{ fontSize: '0.75rem', color: '#7a716a', fontWeight: '600', backgroundColor: '#f5eded', padding: '4px 8px', borderRadius: '4px' }}>
+                                      Đã đánh giá
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedItemForReview({
+                                          product_id: item.product_id,
+                                          name: item.name,
+                                          order_id: order.order_id
+                                        });
+                                        setRating(5);
+                                        setComment('');
+                                        setReviewError('');
+                                        setIsModalOpen(true);
+                                      }}
+                                      style={{
+                                        padding: '6px 12px',
+                                        backgroundColor: '#6b1111',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '700'
+                                      }}
+                                    >
+                                      Đánh giá
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div style={styles.itemInfo}>
-                            <div style={styles.itemName}>{item.name}</div>
-                            <div style={styles.itemQty}>x{item.quantity}</div>
-                          </div>
-                          <div style={styles.itemPrice}>{Number(item.price * item.quantity).toLocaleString('vi-VN')} đ</div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </article>
               );
             })}
+          </div>
+        )}
+
+        {isModalOpen && selectedItemForReview && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modalContent}>
+              <h3 style={styles.modalTitle}>Đánh giá sản phẩm</h3>
+              <p style={styles.modalSubtitle}>{selectedItemForReview.name}</p>
+              
+              <div style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <span
+                    key={star}
+                    onClick={() => setRating(star)}
+                    style={{
+                      cursor: 'pointer',
+                      fontSize: '2rem',
+                      color: star <= rating ? '#b89a5b' : '#ddd',
+                      transition: 'color 0.2s',
+                      marginRight: 6
+                    }}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+
+              {reviewError && <div style={styles.modalError}>{reviewError}</div>}
+
+              <textarea
+                placeholder="Chia sẻ nhận xét của bạn về hương vị bánh, hình thức đóng gói nhé..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                style={styles.modalTextarea}
+              />
+
+              <div style={styles.modalActions}>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  style={styles.modalCancelBtn}
+                >
+                  HỦY
+                </button>
+                <button
+                  onClick={submitReview}
+                  disabled={submittingReview}
+                  style={styles.modalSubmitBtn}
+                >
+                  {submittingReview ? 'ĐANG GỬI...' : 'GỬI ĐÁNH GIÁ'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>
@@ -205,6 +341,105 @@ const styles = {
   itemName: { color: '#222', fontWeight: '700', marginBottom: '4px' },
   itemQty: { color: '#8a827b', fontSize: '0.9rem' },
   itemPrice: { color: '#6b1111', fontWeight: '800', whiteSpace: 'nowrap' },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(52, 28, 22, 0.6)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+    backdropFilter: 'blur(4px)'
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: '20px',
+    padding: '32px',
+    maxWidth: '480px',
+    width: '90%',
+    boxShadow: '0 24px 50px rgba(107, 17, 17, 0.15)',
+    border: '1px solid #efe4dd',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  modalTitle: {
+    margin: '0 0 10px',
+    fontFamily: "'Playfair Display', serif",
+    fontSize: '1.8rem',
+    color: '#6b1111',
+    textAlign: 'center'
+  },
+  modalSubtitle: {
+    margin: '0 0 20px',
+    color: '#7a716a',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: '0.95rem'
+  },
+  starsRow: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '8px',
+    marginBottom: '20px'
+  },
+  modalTextarea: {
+    width: '100%',
+    boxSizing: 'border-box',
+    minHeight: '120px',
+    padding: '14px',
+    borderRadius: '12px',
+    border: '1px solid #eadfda',
+    fontSize: '0.9rem',
+    fontFamily: "'Montserrat', sans-serif",
+    resize: 'vertical',
+    outline: 'none',
+    marginBottom: '20px',
+    color: '#333',
+    backgroundColor: '#fdfaf8',
+    transition: 'border-color 0.2s'
+  },
+  modalActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px'
+  },
+  modalCancelBtn: {
+    padding: '12px 20px',
+    backgroundColor: '#fff',
+    color: '#8a827b',
+    border: '1px solid #eadfda',
+    borderRadius: '999px',
+    fontSize: '11px',
+    fontWeight: '700',
+    letterSpacing: '1px',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  },
+  modalSubmitBtn: {
+    padding: '12px 24px',
+    backgroundColor: '#6b1111',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '999px',
+    fontSize: '11px',
+    fontWeight: '700',
+    letterSpacing: '1px',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  },
+  modalError: {
+    color: '#c5221f',
+    backgroundColor: '#fce8e6',
+    border: '1px solid #fad2cf',
+    padding: '10px 14px',
+    borderRadius: '8px',
+    fontSize: '0.85rem',
+    marginBottom: '16px',
+    textAlign: 'center'
+  }
 };
 
 export default Orders;

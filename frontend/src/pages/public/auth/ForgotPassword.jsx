@@ -7,7 +7,6 @@ const ForgotPassword = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [demoOtp, setDemoOtp] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -17,16 +16,10 @@ const ForgotPassword = () => {
     setLoading(true);
     setError('');
     setMessage('');
-    setDemoOtp('');
 
     try {
       const res = await api.post('/auth/forgot-password', { email });
-      setMessage(res.data.message || 'Mã OTP đã được gửi thành công!');
-      setDemoOtp('sent');
-      setTimeout(() => {
-        // Redirect to reset-password page after 3 seconds
-        navigate('/reset-password', { state: { email } });
-      }, 3500);
+      navigate('/forgot-success', { state: { email } });
     } catch (err) {
       setError(err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');
     } finally {
@@ -43,13 +36,7 @@ const ForgotPassword = () => {
         {error && <div style={styles.errorAlert}>{error}</div>}
         {message && <div style={styles.successAlert}>{message}</div>}
 
-        {demoOtp && (
-          <div style={styles.demoOtpBox}>
-            <p style={styles.otpLabel}>[EMAIL SENDER] Đã gửi mã OTP đến hòm thư:</p>
-            <div style={styles.otpValue}>*** ***</div>
-            <p style={styles.otpNote}>Đang chuyển hướng sang trang đổi mật khẩu...</p>
-          </div>
-        )}
+
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.inputGroup}>

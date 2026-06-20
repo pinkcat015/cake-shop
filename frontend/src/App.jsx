@@ -25,6 +25,8 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminVouchers from './pages/admin/AdminVouchers';
 import PaymentGateway from './pages/public/PaymentGateway';
+import RegisterSuccess from './pages/public/auth/RegisterSuccess';
+import ForgotSuccess from './pages/public/auth/ForgotSuccess';
 
 const ProtectedRoute = ({ children, roles }) => {
   const { token, role } = useAuth();
@@ -81,7 +83,9 @@ function App() {
             <Route path="/stores/:id" element={<StoreDetail />} />
             <Route path="/locations/:id" element={<StoreDetail />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/register-success" element={<RegisterSuccess />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/forgot-success" element={<ForgotSuccess />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/login" element={<Login />} />
