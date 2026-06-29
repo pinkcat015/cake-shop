@@ -39,6 +39,7 @@ const Navbar = () => {
         <nav style={styles.navLinks}>
           <Link to="/" style={styles.navItem}>Home</Link>
 
+
           <div
             style={styles.menuWrap}
             onMouseEnter={() => setIsProductsOpen(true)}

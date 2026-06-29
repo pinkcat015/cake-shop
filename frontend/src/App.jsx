@@ -27,6 +27,8 @@ import AdminVouchers from './pages/admin/AdminVouchers';
 import PaymentGateway from './pages/public/PaymentGateway';
 import RegisterSuccess from './pages/public/auth/RegisterSuccess';
 import ForgotSuccess from './pages/public/auth/ForgotSuccess';
+import News from './pages/public/News';
+
 
 const ProtectedRoute = ({ children, roles }) => {
   const { token, role } = useAuth();
@@ -56,6 +58,7 @@ function App() {
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/news" element={<News />} />
             <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
             <Route path="/payment-gateway" element={<ProtectedRoute><PaymentGateway /></ProtectedRoute>} />
             <Route path="/locations" element={<Stores />} />

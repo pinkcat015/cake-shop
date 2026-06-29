@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import api from '../../../api/api';
 import Navbar from '../../../components/Navbar';
 
@@ -10,6 +11,7 @@ const Register = () => {
     email: '',
     role_name: 'customer', // default role
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -88,15 +90,34 @@ const Register = () => {
 
               <label style={styles.field}>
                 <span style={styles.label}>Password</span>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  style={styles.input}
-                  placeholder="Create a password"
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    style={{ ...styles.input, paddingRight: '48px' }}
+                    placeholder="Create a password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '16px',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#7a4b4f',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '4px'
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </label>
 
               <label style={styles.field}>

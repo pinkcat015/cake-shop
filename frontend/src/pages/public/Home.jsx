@@ -28,7 +28,23 @@ const Home = () => {
       <section style={styles.quickNav}>
         {user?.role_name === 'employee' && (
           <div style={styles.adminAlert}>
-            Bạn đang đăng nhập với quyền <strong>Nhân viên</strong>. <Link to="/employee/products">Đi tới màn hình vận hành</Link>
+            <span style={styles.adminAlertText}>
+              🔒 Bạn đang đăng nhập với quyền <strong>Nhân viên</strong>.
+            </span>
+            <Link 
+              to="/employee/products" 
+              style={styles.adminAlertLink}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#6b1111';
+                e.currentTarget.style.color = '#fff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#6b1111';
+              }}
+            >
+              Đi tới màn hình vận hành →
+            </Link>
           </div>
         )}
       </section>
@@ -83,7 +99,7 @@ const Home = () => {
         trọn vẹn sự tinh tế.
       </p>
       
-      <Link to="/story" style={styles.readMoreBtn}>READ OUR STORY</Link>
+      <Link to="/news" style={styles.readMoreBtn}>READ OUR STORY</Link>
     </div>
     </RevealOnScroll>
   </div>
@@ -405,11 +421,38 @@ const styles = {
     cursor: 'pointer',
   },
   adminAlert: {
-    padding: '15px',
-    backgroundColor: '#f8f9fa',
-    border: '1px solid #ddd',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: '12px',
+    padding: '16px 28px',
+    backgroundColor: '#fffcf6',
+    border: '1px dashed #c59b27',
+    borderRadius: '16px',
     textAlign: 'center',
-    margin: '20px',
+    margin: '30px auto 10px',
+    maxWidth: '820px',
+    boxShadow: '0 8px 30px rgba(197, 155, 39, 0.08)',
+    fontFamily: "'Manrope', sans-serif",
+  },
+  adminAlertText: {
+    color: '#856404',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
+  adminAlertLink: {
+    color: '#6b1111',
+    fontWeight: '700',
+    textDecoration: 'none',
+    border: '1.5px solid #6b1111',
+    padding: '6px 18px',
+    borderRadius: '999px',
+    fontSize: '12px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.6px',
+    transition: 'all 0.25s ease',
+    display: 'inline-block',
   },
   sectionLight: {
     padding: '80px 24px',
