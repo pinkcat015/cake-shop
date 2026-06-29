@@ -66,24 +66,26 @@ const Checkout = () => {
       const res = await api.get('/stores');
       const list = res.data?.stores || [];
       setStores(list);
-      if (list.length && !selectedStore) {
-        setSelectedStore(list[0]);
-      }
+      // FE14: Read selectedStore via functional state update to avoid stale closure
+      setSelectedStore((prev) => (prev ? prev : list[0] || null));
     } catch (err) {
       console.error(err);
       alert('Không thể tải danh sách cửa hàng');
     } finally {
       setStoresLoading(false);
     }
-  }, [selectedStore]);
+  // FE14: Remove selectedStore from deps to prevent re-fetch on every store selection
+  }, []);
 
   useEffect(() => { loadCart(); }, [loadCart]);
 
   useEffect(() => {
     if (!loading) {
-      refreshPricing('');
+      // FE13: Pass the currently applied voucher code so it doesn't get wiped on re-price
+      refreshPricing(voucherCode.trim());
     }
-  }, [items.length, loading, refreshPricing]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length, loading]);
 
   useEffect(() => {
     if (stores.length === 0) {
@@ -107,7 +109,10 @@ const Checkout = () => {
     setVoucherLoading(true);
     try {
       const result = await refreshPricing(code);
-      alert(`Áp voucher thành công. Giảm ${Number(result?.total_discount || 0).toLocaleString('vi-VN')} đ`);
+      // FE12: Only show success if result is not null (refreshPricing catches errors and returns null)
+      if (result) {
+        alert(`Áp voucher thành công. Giảm ${Number(result?.total_discount || 0).toLocaleString('vi-VN')} đ`);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -116,6 +121,11 @@ const Checkout = () => {
   };
 
   const placeOrder = async () => {
+    // FE15: Guard against empty cart
+    if (!items || items.length === 0) {
+      alert('Giỏ hàng của bạn đang trống. Vui lòng thêm sản phẩm trước khi đặt hàng.');
+      return;
+    }
     if (deliveryMethod === 'delivery' && !address.trim()) {
       alert('Vui lòng nhập địa chỉ nhận hàng');
       return;
@@ -151,11 +161,11 @@ const Checkout = () => {
       }
 
       if (paymentMethod === 'bank_transfer') {
-        alert('Đặt hàng thành công. Vui lòng thực hiện chuyển khoản để hoàn tất đơn hàng.');
+        alert('Đặt hàng thành công! Hệ thống đang chuyển hướng bạn sang cổng thanh toán trực tuyến...');
         window.dispatchEvent(new Event('cart-updated'));
         navigate(`/payment-gateway?order_id=${order.order_id}&amount=${payable}`);
       } else {
-        alert('Đặt hàng và thanh toán thành công!');
+        alert('Đặt hàng thành công! Đơn hàng của bạn đã được ghi nhận.');
         window.dispatchEvent(new Event('cart-updated'));
         navigate('/orders');
       }
@@ -394,24 +404,29 @@ const Checkout = () => {
                   <h4 style={styles.miniTitle}>Phương thức thanh toán</h4>
                   <div style={styles.paymentOptions}>
                     {[
-                      { value: 'cash', label: 'Tiền mặt' },
-                      { value: 'bank_transfer', label: 'Chuyển khoản' },
-                      { value: 'online', label: 'Thanh toán online giả lập' },
+                      { value: 'cash', label: 'Thanh toán khi nhận hàng (COD)', desc: 'Thanh toán bằng tiền mặt khi nhận bánh' },
+                      { value: 'bank_transfer', label: 'Thanh toán trực tuyến (Online)', desc: 'Chuyển khoản VietQR, ví Momo/ZaloPay, Visa/Mastercard' },
                     ].map((option) => (
                       <label key={option.value} style={{
                         ...styles.paymentOption,
                         borderColor: paymentMethod === option.value ? '#6b1111' : '#ddd',
-                        backgroundColor: paymentMethod === option.value ? '#fbf8f6' : '#fff'
+                        backgroundColor: paymentMethod === option.value ? '#fbf8f6' : '#fff',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        gap: '4px'
                       }}>
-                        <input
-                          type="radio"
-                          name="payment-method"
-                          value={option.value}
-                          checked={paymentMethod === option.value}
-                          onChange={() => setPaymentMethod(option.value)}
-                          style={styles.radioInput}
-                        />
-                        <span>{option.label}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input
+                            type="radio"
+                            name="payment-method"
+                            value={option.value}
+                            checked={paymentMethod === option.value}
+                            onChange={() => setPaymentMethod(option.value)}
+                            style={styles.radioInput}
+                          />
+                          <span style={{ fontWeight: '600', color: '#333' }}>{option.label}</span>
+                        </div>
+                        <span style={{ fontSize: '0.78rem', color: '#888', paddingLeft: '28px' }}>{option.desc}</span>
                       </label>
                     ))}
                   </div>

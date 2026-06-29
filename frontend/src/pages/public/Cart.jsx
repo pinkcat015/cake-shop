@@ -8,6 +8,7 @@ const Cart = () => {
   const [items, setItems] = useState([]);
   const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null); // FE18: track which item is being updated
   const navigate = useNavigate();
 
   const loadCart = async () => {
@@ -36,23 +37,33 @@ const Cart = () => {
 
   const updateQty = async (product_id, qty) => {
     if (qty < 1) return; // Tránh số lượng bằng 0 hoặc âm
+    setUpdatingId(product_id); // FE18: set loading state
     try {
       await api.put('/cart/update', { product_id, quantity: Number(qty) });
       await loadCart();
       window.dispatchEvent(new Event('cart-updated'));
     } catch (err) {
       console.error(err);
+      // FE17: Show error to user instead of silent fail
+      alert(err.response?.data?.message || 'Không thể cập nhật số lượng. Vui lòng thử lại.');
+    } finally {
+      setUpdatingId(null); // FE18: clear loading state
     }
   };
 
   const removeItem = async (product_id) => {
     if (!window.confirm('Xóa món bánh này khỏi giỏ hàng?')) return;
+    setUpdatingId(product_id); // FE18: set loading state
     try {
       await api.delete('/cart/remove', { data: { product_id } });
       await loadCart();
       window.dispatchEvent(new Event('cart-updated'));
     } catch (err) {
       console.error(err);
+      // FE17: Show error to user instead of silent fail
+      alert(err.response?.data?.message || 'Không thể xóa món. Vui lòng thử lại.');
+    } finally {
+      setUpdatingId(null); // FE18: clear loading state
     }
   };
 
@@ -68,10 +79,30 @@ const Cart = () => {
   return (
     <div style={styles.page}>
       <Navbar />
+
+      <section style={styles.heroBanner}>
+        <p style={styles.heroOverline}>Scarlett Bakery</p>
+        <h1 style={styles.heroTitle}>GIỎ HÀNG CỦA BẠN</h1>
+        <p style={styles.heroDesc}>
+          Xem lại các món bánh thơm ngon bạn đã lựa chọn trước khi đặt hàng.
+        </p>
+        <Link 
+          to="/products" 
+          style={styles.backLinkBanner}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#efe5de';
+            e.currentTarget.style.color = '#6b1111';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = '#efe5de';
+          }}
+        >
+          Tiếp tục mua hàng
+        </Link>
+      </section>
       
       <main style={styles.container}>
-        <h2 style={styles.title}>Giỏ hàng của bạn</h2>
-        <div style={styles.underline}></div>
 
         {items.length === 0 ? (
           <div style={styles.emptyState}>
@@ -114,21 +145,47 @@ const Cart = () => {
                     </div>
 
                     <div style={styles.quantityControls}>
-                      <button onClick={() => updateQty(item.product_id, item.quantity - 1)} style={styles.qtyBtn}>-</button>
+                      {/* FE16: Disable minus button when quantity is already 1 */}
+                      <button 
+                        onClick={() => updateQty(item.product_id, item.quantity - 1)}
+                        disabled={item.quantity <= 1 || updatingId === item.product_id}
+                        style={{
+                          ...styles.qtyBtn,
+                          opacity: (item.quantity <= 1 || updatingId === item.product_id) ? 0.4 : 1,
+                          cursor: (item.quantity <= 1 || updatingId === item.product_id) ? 'not-allowed' : 'pointer',
+                        }}
+                        title={item.quantity <= 1 ? 'Số lượng tối thiểu là 1' : ''}
+                      >-</button>
                       <input 
                         type="number" 
                         value={item.quantity} 
                         readOnly
                         style={styles.qtyInput} 
                       />
-                      <button onClick={() => updateQty(item.product_id, item.quantity + 1)} style={styles.qtyBtn}>+</button>
+                      <button 
+                        onClick={() => updateQty(item.product_id, item.quantity + 1)}
+                        disabled={updatingId === item.product_id}
+                        style={{
+                          ...styles.qtyBtn,
+                          opacity: updatingId === item.product_id ? 0.4 : 1,
+                          cursor: updatingId === item.product_id ? 'not-allowed' : 'pointer',
+                        }}
+                      >+</button>
                     </div>
 
                     <div style={styles.itemTotal}>
                       {(effectivePrice * item.quantity).toLocaleString('vi-VN')} đ
                     </div>
 
-                    <button onClick={() => removeItem(item.product_id)} style={styles.removeBtn}>✕</button>
+                    <button 
+                      onClick={() => removeItem(item.product_id)}
+                      disabled={updatingId === item.product_id}
+                      style={{
+                        ...styles.removeBtn,
+                        opacity: updatingId === item.product_id ? 0.4 : 1,
+                        cursor: updatingId === item.product_id ? 'not-allowed' : 'pointer',
+                      }}
+                    >✕</button>
                   </div>
                 );
               })}
@@ -168,9 +225,50 @@ const Cart = () => {
 
 const styles = {
   page: { backgroundColor: '#fff', minHeight: '100vh', fontFamily: "'Montserrat', sans-serif" },
-  container: { maxWidth: '1200px', margin: '60px auto', padding: '0 20px' },
-  title: { fontFamily: "'Playfair Display', serif", fontSize: '2.5rem', textAlign: 'center', margin: 0, color: '#333' },
-  underline: { width: '60px', height: '3px', backgroundColor: '#6b1111', margin: '20px auto 50px' },
+  container: { maxWidth: '1200px', margin: '40px auto 80px', padding: '0 20px' },
+  heroBanner: {
+    backgroundColor: '#6b1111',
+    padding: '64px 40px 56px',
+    textAlign: 'center',
+  },
+  heroOverline: {
+    fontSize: '12px',
+    letterSpacing: '3px',
+    color: '#f4d7b0',
+    textTransform: 'uppercase',
+    marginBottom: '12px',
+    fontWeight: '700'
+  },
+  heroTitle: {
+    fontFamily: "'Playfair Display', serif",
+    fontSize: '38px',
+    color: '#fff',
+    marginBottom: '14px',
+    letterSpacing: '2px',
+    fontWeight: '800'
+  },
+  heroDesc: {
+    fontSize: '15px',
+    color: 'rgba(255,255,255,0.72)',
+    maxWidth: '500px',
+    margin: '0 auto 20px',
+    lineHeight: '1.7',
+  },
+  backLinkBanner: {
+    display: 'inline-block',
+    padding: '8px 24px',
+    border: '1px solid rgba(239, 229, 222, 0.4)',
+    borderRadius: '30px',
+    color: '#efe5de',
+    textDecoration: 'none',
+    fontSize: '0.78rem',
+    fontWeight: '700',
+    letterSpacing: '1px',
+    textTransform: 'uppercase',
+    transition: 'all 0.3s ease',
+    backgroundColor: 'transparent',
+    cursor: 'pointer'
+  },
   
   cartLayout: { display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '50px', alignItems: 'start' },
   

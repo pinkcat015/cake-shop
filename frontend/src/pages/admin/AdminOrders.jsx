@@ -12,6 +12,13 @@ const AdminOrders = () => {
   const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isWide, setIsWide] = useState(window.innerWidth >= 900); // FE1: for responsive 2-col layout
+
+  useEffect(() => {
+    const handleResize = () => setIsWide(window.innerWidth >= 900);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -35,18 +42,29 @@ const AdminOrders = () => {
   useEffect(() => {
     if (filterStatus === 'ALL') {
       setFilteredOrders(orders);
+    } else if (filterStatus === 'CANCEL_PENDING') {
+      // FE3: Special filter for cancel-pending orders
+      setFilteredOrders(orders.filter(o => o.cancel_requested === 1 && o.status === 'CONFIRMED'));
     } else {
       setFilteredOrders(orders.filter(o => o.status === filterStatus));
     }
   }, [filterStatus, orders]);
 
   const handleStatusChange = async (orderId, newStatus) => {
+    // FE4: Add confirmation for irreversible transitions
+    const irreversible = ['CANCELLED', 'DELIVERED'];
+    if (irreversible.includes(newStatus)) {
+      if (!window.confirm(`Bạn có chắc chắn muốn đổi trạng thái thành "${newStatus}" không? Hành động này khó hoàn tác.`)) return;
+    }
     setUpdatingId(orderId);
     setError('');
     setSuccess('');
     try {
       await api.put(`/orders/${orderId}/status`, { status: newStatus });
-      setSuccess(`Cập nhật đơn hàng #${orderId} sang trạng thái ${newStatus} thành công!`);
+      const msg = `Cập nhật đơn hàng #${orderId} sang trạng thái ${newStatus} thành công!`;
+      setSuccess(msg);
+      // Auto-clear success message after 4 seconds
+      setTimeout(() => setSuccess(prev => prev === msg ? '' : prev), 4000);
 
       // Update local state
       setOrders(prev => prev.map(o => o.order_id === orderId ? { ...o, status: newStatus } : o));
@@ -57,6 +75,46 @@ const AdminOrders = () => {
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleApproveCancel = async (orderId) => {
+    if (!window.confirm('Bạn có chắc chắn đồng ý hủy đơn hàng này không?')) return;
+    setUpdatingId(orderId);
+    setError('');
+    setSuccess('');
+    try {
+      await api.put(`/orders/${orderId}/approve-cancel`);
+      setSuccess(`Đồng ý hủy đơn hàng #${orderId} thành công!`);
+      setOrders(prev => prev.map(o => o.order_id === orderId ? { ...o, status: 'CANCELLED', cancel_requested: 0 } : o));
+      if (selectedOrder && selectedOrder.order_id === orderId) {
+        setSelectedOrder(prev => ({ ...prev, status: 'CANCELLED', cancel_requested: 0 }));
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || 'Không thể đồng ý hủy đơn');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleRejectCancel = async (orderId) => {
+    if (!window.confirm('Bạn có chắc chắn từ chối yêu cầu hủy đơn hàng này không?')) return;
+    setUpdatingId(orderId);
+    setError('');
+    setSuccess('');
+    try {
+      await api.put(`/orders/${orderId}/reject-cancel`);
+      setSuccess(`Từ chối yêu cầu hủy đơn hàng #${orderId}. Đơn giữ nguyên trạng thái.`);
+      setOrders(prev => prev.map(o => o.order_id === orderId ? { ...o, cancel_requested: 0 } : o));
+      if (selectedOrder && selectedOrder.order_id === orderId) {
+        setSelectedOrder(prev => ({ ...prev, cancel_requested: 0 }));
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || 'Không thể từ chối hủy đơn');
     } finally {
       setUpdatingId(null);
     }
@@ -142,10 +200,22 @@ const AdminOrders = () => {
           >
             Đã Hủy ({orders.filter(o => o.status === 'CANCELLED').length})
           </button>
+          {/* FE3: Add dedicated filter for cancel-pending orders */}
+          <button
+            onClick={() => setFilterStatus('CANCEL_PENDING')}
+            style={{ 
+              ...styles.filterBtn, 
+              ...(filterStatus === 'CANCEL_PENDING' ? styles.activeFilter : {}),
+              borderColor: '#b45309',
+              color: filterStatus === 'CANCEL_PENDING' ? '#fff' : '#b45309',
+            }}
+          >
+            Cần Duyệt Hủy ({orders.filter(o => o.cancel_requested === 1 && o.status === 'CONFIRMED').length})
+          </button>
         </div>
 
-        {/* MAIN LAYOUT */}
-        <div style={styles.contentLayout}>
+        {/* MAIN LAYOUT - FE1: Use isWide state for responsive 2-col grid instead of @media in inline style */}
+        <div style={{ ...styles.contentLayout, gridTemplateColumns: isWide && selectedOrder ? '2fr 1fr' : '1fr' }}>
           {/* ORDERS TABLE */}
           <div style={styles.tableCard}>
             {loading ? (
@@ -180,7 +250,7 @@ const AdminOrders = () => {
                       <td style={styles.td}>
                         {new Date(order.order_date).toLocaleDateString('vi-VN')} {new Date(order.order_date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td style={styles.td} style={{ ...styles.td, fontWeight: '600', color: '#6b1111' }}>
+                      <td style={{ ...styles.td, fontWeight: '600', color: '#6b1111' }}>
                         {formatVND(order.total_price)}
                       </td>
                       <td style={styles.td}>
@@ -193,10 +263,17 @@ const AdminOrders = () => {
                         </span>
                       </td>
                       <td style={styles.td}>
-                        <div style={{ ...styles.statusBadge, ...getStatusStyle(order.status) }}>
-                          {getStatusIcon(order.status)}
-                          <span style={{ marginLeft: '4px' }}>{order.status}</span>
-                        </div>
+                        {order.cancel_requested === 1 && order.status === 'CONFIRMED' ? (
+                          <div style={{ ...styles.statusBadge, backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde8c3', display: 'flex', alignItems: 'center' }}>
+                            <Clock size={14} color="#b45309" />
+                            <span style={{ marginLeft: '4px', fontWeight: '700' }}>CẦN DUYỆT HỦY</span>
+                          </div>
+                        ) : (
+                          <div style={{ ...styles.statusBadge, ...getStatusStyle(order.status) }}>
+                            {getStatusIcon(order.status)}
+                            <span style={{ marginLeft: '4px' }}>{order.status}</span>
+                          </div>
+                        )}
                       </td>
                       <td style={styles.td}>
                         <button
@@ -226,6 +303,31 @@ const AdminOrders = () => {
               </div>
 
               <div style={styles.detailsBody}>
+                {/* Cancel Request Action */}
+                {selectedOrder.cancel_requested === 1 && (
+                  <div style={styles.cancelRequestBlock}>
+                    <div style={styles.cancelRequestAlert}>
+                      ⚠️ <strong>Khách hàng yêu cầu hủy đơn này.</strong>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                      <button
+                        onClick={() => handleApproveCancel(selectedOrder.order_id)}
+                        disabled={updatingId === selectedOrder.order_id}
+                        style={styles.btnApproveCancel}
+                      >
+                        Đồng ý hủy đơn
+                      </button>
+                      <button
+                        onClick={() => handleRejectCancel(selectedOrder.order_id)}
+                        disabled={updatingId === selectedOrder.order_id}
+                        style={styles.btnRejectCancel}
+                      >
+                        Từ chối hủy
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Status Update */}
                 <div style={styles.detailBlock}>
                   <label style={styles.detailLabel}>Cập nhật trạng thái</label>
@@ -380,13 +482,10 @@ const styles = {
   },
   contentLayout: {
     display: 'grid',
+    // FE1: @media queries not supported in inline styles — use isWide state instead (handled in JSX)
     gridTemplateColumns: '1fr',
     gap: '25px',
     alignItems: 'start',
-    // Dynamic grid when details selected
-    '@media (min-width: 900px)': {
-      gridTemplateColumns: '2fr 1fr',
-    },
   },
   // We handle grid layout inline/responsively
   tableCard: {
@@ -507,6 +606,43 @@ const styles = {
     color: '#9ca3af',
     cursor: 'pointer',
     lineHeight: '1',
+  },
+  cancelRequestBlock: {
+    backgroundColor: '#fffbeb',
+    border: '1px solid #fde8c3',
+    borderRadius: '10px',
+    padding: '16px',
+    marginBottom: '20px',
+    textAlign: 'left'
+  },
+  cancelRequestAlert: {
+    color: '#b45309',
+    fontSize: '13px',
+    lineHeight: '1.5',
+  },
+  btnApproveCancel: {
+    flex: 1,
+    padding: '10px 14px',
+    backgroundColor: '#9b1c1c',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  btnRejectCancel: {
+    flex: 1,
+    padding: '10px 14px',
+    backgroundColor: '#fff',
+    color: '#555',
+    border: '1px solid #ccc',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
   },
   detailBlock: {
     marginBottom: '20px',

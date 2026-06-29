@@ -3,6 +3,9 @@ const orderModel = require('../models/orderModel');
 const db = require('../config/db');
 const { calculateCartPricing, getVoucherByCode } = require('../models/voucherModel');
 
+// Allowed order statuses whitelist
+const ALLOWED_STATUSES = ['PENDING', 'CONFIRMED', 'SHIPPING', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
+
 const createOrderFromCart = async (req, res) => {
   const connection = await db.getConnection();
   try {
@@ -33,7 +36,10 @@ const createOrderFromCart = async (req, res) => {
       const requestedQty = Number(item.quantity || 0);
 
       if (requestedQty <= 0) {
-        throw new Error('INVALID_CART_ITEM');
+        // BE3: Return 400 with meaningful message instead of 500
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({ message: 'Số lượng sản phẩm trong giỏ hàng không hợp lệ' });
       }
 
       if (requestedQty > stockQty) {
@@ -43,11 +49,29 @@ const createOrderFromCart = async (req, res) => {
       }
     }
 
-    const pricing = await calculateCartPricing(items, voucher_code);
+    let pricing;
+    try {
+      pricing = await calculateCartPricing(items, voucher_code);
+    } catch (vErr) {
+      await connection.rollback();
+      connection.release();
+      // BE4: Catch VOUCHER_EXPIRED and return 400 instead of 500
+      if (vErr.message === 'VOUCHER_EXPIRED') {
+        return res.status(400).json({ message: 'Mã voucher đã hết hạn' });
+      }
+      if (vErr.message === 'VOUCHER_NOT_FOUND') {
+        return res.status(400).json({ message: 'Mã voucher không tồn tại' });
+      }
+      throw vErr;
+    }
+
     const customerId = cart.customer_id;
+    // BE2: Check voucher BEFORE transaction work continues (avoid leak)
     const voucher = pricing.voucher || (voucher_code ? await getVoucherByCode(voucher_code) : null);
 
     if (voucher_code && !voucher) {
+      await connection.rollback();
+      connection.release();
       return res.status(400).json({ message: 'Voucher not found' });
     }
 
@@ -135,7 +159,7 @@ const createOrderFromCart = async (req, res) => {
     }
     res.status(500).json({ message: 'Internal server error' });
   } finally {
-    connection.release();
+    try { connection.release(); } catch (_) {}
   }
 };
 
@@ -155,6 +179,10 @@ const updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     if (!status) return res.status(400).json({ message: 'status is required' });
+    // BE5: Whitelist validation
+    if (!ALLOWED_STATUSES.includes(status)) {
+      return res.status(400).json({ message: `Trạng thái không hợp lệ. Cho phép: ${ALLOWED_STATUSES.join(', ')}` });
+    }
     await orderModel.updateOrderStatus(id, status);
     const updated = await orderModel.getOrderById(id);
     res.json({ order: updated });
@@ -174,4 +202,146 @@ const getAllOrders = async (req, res) => {
   }
 };
 
-module.exports = { createOrderFromCart, getMyOrders, updateOrderStatus, getAllOrders };
+const requestCancelOrder = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const orderId = Number(req.params.id);
+
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({ message: 'order_id is required' });
+    }
+
+    const order = await orderModel.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Verify order belongs to customer
+    const [customerRows] = await db.query('SELECT customer_id FROM Customer WHERE user_id = ? LIMIT 1', [userId]);
+    const customerId = customerRows[0]?.customer_id;
+    // BE7: Explicit null check for customerId
+    if (!customerId) {
+      return res.status(403).json({ message: 'Không tìm thấy thông tin khách hàng' });
+    }
+    if (order.customer_id !== customerId) {
+      return res.status(403).json({ message: 'Unauthorized to cancel this order' });
+    }
+
+    if (order.status === 'PENDING') {
+      // BE7: Free cancel — restore inventory in transaction
+      const connection = await db.getConnection();
+      try {
+        await connection.beginTransaction();
+        await connection.query("UPDATE `Order` SET status = 'CANCELLED' WHERE order_id = ?", [orderId]);
+        // Restore inventory
+        const [details] = await connection.query('SELECT product_id, quantity FROM `OrderDetail` WHERE order_id = ?', [orderId]);
+        for (const detail of details) {
+          await connection.query('UPDATE Inventory SET quantity = quantity + ? WHERE product_id = ?', [detail.quantity, detail.product_id]);
+        }
+        await connection.commit();
+      } catch (txErr) {
+        await connection.rollback();
+        throw txErr;
+      } finally {
+        connection.release();
+      }
+      const updated = await orderModel.getOrderById(orderId);
+      return res.json({ message: 'Hủy đơn hàng thành công', order: updated });
+    } else if (order.status === 'CONFIRMED') {
+      // Need seller acceptance
+      await orderModel.updateCancelRequest(orderId, 1);
+      const updated = await orderModel.getOrderById(orderId);
+      return res.json({ message: 'Đã gửi yêu cầu hủy đơn hàng. Vui lòng chờ người bán duyệt.', order: updated });
+    } else {
+      return res.status(400).json({ message: 'Đơn hàng đang được giao hoặc đã hoàn thành, không thể hủy' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const approveCancelOrder = async (req, res) => {
+  try {
+    const orderId = Number(req.params.id);
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({ message: 'order_id is required' });
+    }
+
+    const order = await orderModel.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // BE6: Must have an active cancel request and be in CONFIRMED status
+    if (!order.cancel_requested || order.cancel_requested !== 1) {
+      return res.status(400).json({ message: 'Đơn hàng này không có yêu cầu hủy đang chờ xử lý' });
+    }
+    if (order.status !== 'CONFIRMED') {
+      return res.status(400).json({ message: 'Chỉ có thể đồng ý hủy đơn hàng đang ở trạng thái Đã xác nhận' });
+    }
+
+    // BE7: Approve cancel + restore inventory in transaction
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+      await connection.query(
+        "UPDATE `Order` SET status = 'CANCELLED', cancel_requested = 0 WHERE order_id = ?",
+        [orderId]
+      );
+      // Restore inventory
+      const [details] = await connection.query('SELECT product_id, quantity FROM `OrderDetail` WHERE order_id = ?', [orderId]);
+      for (const detail of details) {
+        await connection.query('UPDATE Inventory SET quantity = quantity + ? WHERE product_id = ?', [detail.quantity, detail.product_id]);
+      }
+      await connection.commit();
+    } catch (txErr) {
+      await connection.rollback();
+      throw txErr;
+    } finally {
+      connection.release();
+    }
+
+    const updated = await orderModel.getOrderById(orderId);
+    res.json({ message: 'Đồng ý yêu cầu hủy đơn hàng thành công', order: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const rejectCancelOrder = async (req, res) => {
+  try {
+    const orderId = Number(req.params.id);
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({ message: 'order_id is required' });
+    }
+
+    const order = await orderModel.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' })
+    }
+
+    // BE6: Must have an active cancel request
+    if (!order.cancel_requested || order.cancel_requested !== 1) {
+      return res.status(400).json({ message: 'Đơn hàng này không có yêu cầu hủy đang chờ xử lý' });
+    }
+
+    await orderModel.rejectCancelOrderModel(orderId);
+    const updated = await orderModel.getOrderById(orderId);
+    res.json({ message: 'Từ chối yêu cầu hủy đơn hàng thành công', order: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+module.exports = { 
+  createOrderFromCart, 
+  getMyOrders, 
+  updateOrderStatus, 
+  getAllOrders,
+  requestCancelOrder,
+  approveCancelOrder,
+  rejectCancelOrder
+};

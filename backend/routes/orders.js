@@ -15,4 +15,11 @@ router.get('/', authenticateToken, authorizeRoles(ROLES.ADMIN, ROLES.EMPLOYEE), 
 // Cập nhật trạng thái (admin & employee)
 router.put('/:id/status', authenticateToken, authorizeRoles(ROLES.ADMIN, ROLES.EMPLOYEE), orderController.updateOrderStatus);
 
+// Khách hàng hủy đơn hàng hoặc gửi yêu cầu hủy
+router.put('/:id/cancel', authenticateToken, orderController.requestCancelOrder);
+
+// Admin duyệt hủy hoặc từ chối hủy
+router.put('/:id/approve-cancel', authenticateToken, authorizeRoles(ROLES.ADMIN, ROLES.EMPLOYEE), orderController.approveCancelOrder);
+router.put('/:id/reject-cancel', authenticateToken, authorizeRoles(ROLES.ADMIN, ROLES.EMPLOYEE), orderController.rejectCancelOrder);
+
 module.exports = router;

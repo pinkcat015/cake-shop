@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 import api, { toAssetUrl } from '../../api/api';
 import Navbar from '../../components/Navbar';
 
@@ -13,7 +14,21 @@ const formatDate = (value) => {
   });
 };
 
-const getStatusLabel = (status) => {
+const getExpiryTimeLabel = (orderDate) => {
+  if (!orderDate) return 'Chưa xác định';
+  const date = new Date(orderDate);
+  if (Number.isNaN(date.getTime())) return 'Chưa xác định';
+  const expiryDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+  return expiryDate.toLocaleString('vi-VN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+};
+
+const getStatusLabel = (status, cancelRequested) => {
+  if (status === 'CONFIRMED' && cancelRequested) {
+    return 'Chờ duyệt hủy';
+  }
   switch (status) {
     case 'CONFIRMED':
       return 'Đã xác nhận';
@@ -28,7 +43,10 @@ const getStatusLabel = (status) => {
   }
 };
 
-const getStatusStyles = (status) => {
+const getStatusStyles = (status, cancelRequested) => {
+  if (status === 'CONFIRMED' && cancelRequested) {
+    return { backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde8c3' };
+  }
   switch (status) {
     case 'CONFIRMED':
       return { backgroundColor: '#e6f4ea', color: '#137333', border: '1px solid #ceead6' };
@@ -48,6 +66,7 @@ const Orders = () => {
   const [myReviews, setMyReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [cancellingId, setCancellingId] = useState(null); // FE6: prevent duplicate cancel requests
 
   // Modal states for rating/feedback
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -75,6 +94,21 @@ const Orders = () => {
   useEffect(() => {
     loadOrdersAndReviews();
   }, []);
+
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) return;
+    setCancellingId(orderId); // FE6: set loading state
+    try {
+      const res = await api.put(`/orders/${orderId}/cancel`);
+      alert(res.data.message || 'Thực hiện thành công');
+      loadOrdersAndReviews();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Không thể thực hiện yêu cầu hủy đơn');
+    } finally {
+      setCancellingId(null); // FE6: clear loading state
+    }
+  };
 
   const submitReview = async () => {
     if (!selectedItemForReview) return;
@@ -156,9 +190,50 @@ const Orders = () => {
                       <div style={styles.orderLabel}>Mã đơn #{order.order_id}</div>
                       <div style={styles.orderDate}>{formatDate(order.order_date)}</div>
                     </div>
-                    <span style={{ ...styles.statusPill, ...getStatusStyles(order.status) }}>
-                      {getStatusLabel(order.status)}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {order.status === 'PENDING' && (
+                        <button
+                          onClick={() => handleCancelOrder(order.order_id)}
+                          disabled={cancellingId === order.order_id}
+                          style={{
+                            ...styles.cancelOrderBtn,
+                            opacity: cancellingId === order.order_id ? 0.6 : 1,
+                            cursor: cancellingId === order.order_id ? 'not-allowed' : 'pointer',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (cancellingId !== order.order_id) e.currentTarget.style.backgroundColor = '#fdf2f2';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#fff';
+                          }}
+                        >
+                          {cancellingId === order.order_id ? 'Đang hủy...' : 'Hủy đơn'}
+                        </button>
+                      )}
+                      {/* FE7: Use === 1 for strict type check on cancel_requested */}
+                      {order.status === 'CONFIRMED' && order.cancel_requested !== 1 && (
+                        <button
+                          onClick={() => handleCancelOrder(order.order_id)}
+                          disabled={cancellingId === order.order_id}
+                          style={{
+                            ...styles.requestCancelBtn,
+                            opacity: cancellingId === order.order_id ? 0.6 : 1,
+                            cursor: cancellingId === order.order_id ? 'not-allowed' : 'pointer',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (cancellingId !== order.order_id) e.currentTarget.style.backgroundColor = '#fffbeb';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#fff';
+                          }}
+                        >
+                          {cancellingId === order.order_id ? 'Đang gửi...' : 'Yêu cầu hủy'}
+                        </button>
+                      )}
+                      <span style={{ ...styles.statusPill, ...getStatusStyles(order.status, order.cancel_requested) }}>
+                        {getStatusLabel(order.status, order.cancel_requested)}
+                      </span>
+                    </div>
                   </div>
 
                   <div style={styles.metaRow}>
@@ -179,6 +254,33 @@ const Orders = () => {
                       <span style={styles.totalValue}>{Number(order.total_price || 0).toLocaleString('vi-VN')} đ</span>
                     </div>
                   </div>
+
+                  {/* FE5: Only show pay banner if order is still within 24h window */}
+                  {order.status === 'PENDING' && 
+                   order.payment_method === 'bank_transfer' && 
+                   order.payment_status === 'PENDING' &&
+                   Date.now() < new Date(order.order_date).getTime() + 24 * 60 * 60 * 1000 && (
+                    <div style={styles.unpaidBanner}>
+                      <div style={styles.unpaidTextWrap}>
+                        <AlertCircle size={16} style={{ color: '#b45309', marginRight: '8px', flexShrink: 0 }} />
+                        <span style={styles.unpaidWarningText}>
+                          Đơn hàng chưa được thanh toán. Hạn thanh toán: trước <strong>{getExpiryTimeLabel(order.order_date)}</strong> (Đơn tự động hủy sau 24h đặt).
+                        </span>
+                      </div>
+                      <Link 
+                        to={`/payment-gateway?order_id=${order.order_id}&amount=${order.total_price}`} 
+                        style={styles.payNowBtn}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#520b0b';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#6b1111';
+                        }}
+                      >
+                        Thanh toán ngay
+                      </Link>
+                    </div>
+                  )}
 
                   {order.address && (
                     <div style={styles.addressBox}>
@@ -415,6 +517,67 @@ const styles = {
     color: '#6b1111',
     fontWeight: '800',
     fontSize: '1.25rem'
+  },
+  unpaidBanner: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fffdf5',
+    border: '1px solid #fef3c7',
+    borderRadius: '16px',
+    padding: '16px 20px',
+    marginBottom: '20px',
+    gap: '15px',
+    flexWrap: 'wrap',
+  },
+  unpaidTextWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    flex: 1,
+    textAlign: 'left'
+  },
+  unpaidWarningText: {
+    fontSize: '0.88rem',
+    color: '#b45309',
+    lineHeight: '1.5',
+  },
+  payNowBtn: {
+    padding: '10px 20px',
+    backgroundColor: '#6b1111',
+    color: '#fff',
+    textDecoration: 'none',
+    fontSize: '0.85rem',
+    fontWeight: '700',
+    borderRadius: '999px',
+    letterSpacing: '0.5px',
+    boxShadow: '0 4px 12px rgba(107, 17, 17, 0.15)',
+    transition: 'all 0.2s ease',
+    textAlign: 'center',
+    display: 'inline-block',
+  },
+  cancelOrderBtn: {
+    padding: '6px 14px',
+    backgroundColor: '#fff',
+    color: '#ef4444',
+    border: '1px solid #fee2e2',
+    borderRadius: '20px',
+    fontSize: '11px',
+    fontWeight: '700',
+    letterSpacing: '0.5px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  requestCancelBtn: {
+    padding: '6px 14px',
+    backgroundColor: '#fff',
+    color: '#d97706',
+    border: '1px solid #fef3c7',
+    borderRadius: '20px',
+    fontSize: '11px',
+    fontWeight: '700',
+    letterSpacing: '0.5px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
   },
   addressBox: { backgroundColor: '#fffaf5', border: '1px solid #f2e5d9', borderRadius: '16px', padding: '16px 20px', marginBottom: '20px', color: '#5b5149', fontSize: '0.9rem', lineHeight: '1.5' },
   addressLabel: { color: '#6b1111', fontWeight: '700' },
