@@ -12,7 +12,6 @@ const FloatingCart = () => {
 
   useEffect(() => {
     if (!token || location.pathname === '/cart') {
-      setItemCount(0);
       return undefined;
     }
 
@@ -63,10 +62,15 @@ const FloatingCart = () => {
 
   useEffect(() => {
     if (itemCount > previousCountRef.current) {
-      setPulse(true);
+      const pulseTimeout = window.setTimeout(() => {
+        setPulse(true);
+      }, 0);
       const timeoutId = window.setTimeout(() => setPulse(false), 620);
       previousCountRef.current = itemCount;
-      return () => window.clearTimeout(timeoutId);
+      return () => {
+        window.clearTimeout(pulseTimeout);
+        window.clearTimeout(timeoutId);
+      };
     }
 
     previousCountRef.current = itemCount;

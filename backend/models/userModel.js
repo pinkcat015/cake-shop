@@ -33,7 +33,10 @@ const getRoleByName = async (roleName) => {
 };
 
 const updateUserResetToken = async (email, token, expiry) => {
-    await db.query('UPDATE User SET reset_token = ?, reset_token_expiry = ? WHERE email = ?', [token, expiry, email]);
+    await db.query(
+        'UPDATE User SET reset_token = ?, reset_token_expiry = ?, otp_attempts = 0, otp_blocked_until = NULL WHERE email = ?',
+        [token, expiry, email]
+    );
 };
 
 const findUserByResetToken = async (email, token) => {
@@ -59,6 +62,21 @@ const verifyUserEmail = async (token) => {
     return result.affectedRows > 0;
 };
 
+const incrementOtpAttempts = async (email) => {
+    await db.query('UPDATE User SET otp_attempts = otp_attempts + 1 WHERE email = ?', [email]);
+};
+
+const blockUserOtp = async (email, blockDurationMinutes) => {
+    await db.query(
+        'UPDATE User SET otp_blocked_until = DATE_ADD(NOW(), INTERVAL ? MINUTE), reset_token = NULL, reset_token_expiry = NULL WHERE email = ?',
+        [blockDurationMinutes, email]
+    );
+};
+
+const resetOtpAttempts = async (email) => {
+    await db.query('UPDATE User SET otp_attempts = 0, otp_blocked_until = NULL WHERE email = ?', [email]);
+};
+
 module.exports = {
     findUserByUsername,
     findUserByEmail,
@@ -69,5 +87,8 @@ module.exports = {
     updateUserResetToken,
     findUserByResetToken,
     updateUserPassword,
-    verifyUserEmail
+    verifyUserEmail,
+    incrementOtpAttempts,
+    blockUserOtp,
+    resetOtpAttempts
 };

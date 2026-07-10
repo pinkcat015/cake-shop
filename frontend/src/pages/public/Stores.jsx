@@ -38,7 +38,7 @@ const Stores = () => {
       const openTime = parseInt(open.replace(':', ''), 10);
       const closeTime = parseInt(close.replace(':', ''), 10);
       return currentTime >= openTime && currentTime < closeTime;
-    } catch (e) {
+    } catch {
       return true;
     }
   };

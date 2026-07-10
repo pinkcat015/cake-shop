@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api, { toAssetUrl } from '../../api/api';
 import Navbar from '../../components/Navbar';
-import { getActivePromoForProduct, getScheduledPromoForProduct, getEffectivePrice } from '../../utils/promoUtils';
+import { getActivePromoForProduct, getEffectivePrice } from '../../utils/promoUtils';
 
 const Cart = () => {
   const [items, setItems] = useState([]);

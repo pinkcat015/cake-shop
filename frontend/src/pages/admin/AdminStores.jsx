@@ -29,7 +29,7 @@ const AdminStores = () => {
     try {
       const res = await api.get('/stores/admin');
       setStores(Array.isArray(res.data.stores) ? res.data.stores : []);
-    } catch (err) {
+    } catch {
       setError('Không thể tải danh sách cửa hàng');
     } finally {
       setLoading(false);

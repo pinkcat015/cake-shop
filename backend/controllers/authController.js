@@ -1,7 +1,7 @@
     const bcrypt = require('bcryptjs');
     const jwt = require('jsonwebtoken');
     const crypto = require('crypto');
-    const { findUserByUsername, findUserByEmail, createUser, getRoleByName, updateUserResetToken, findUserByResetToken, updateUserPassword, verifyUserEmail } = require('../models/userModel');
+    const { findUserByUsername, findUserByEmail, createUser, getRoleByName, updateUserResetToken, findUserByResetToken, updateUserPassword, verifyUserEmail, incrementOtpAttempts, blockUserOtp, resetOtpAttempts } = require('../models/userModel');
     const { sendVerificationEmail, sendResetOtpEmail } = require('../config/mailer');
 
     const register = async (req, res) => {
@@ -120,10 +120,42 @@
             return res.status(400).json({ message: 'Email, OTP token, and newPassword are required' });
         }
         try {
-            const user = await findUserByResetToken(email, token);
+            const user = await findUserByEmail(email);
             if (!user) {
-                return res.status(400).json({ message: 'Invalid or expired OTP token' });
+                return res.status(404).json({ message: 'User not found' });
             }
+
+            // Check if user is currently blocked from OTP attempts
+            if (user.otp_blocked_until) {
+                const blockedTime = new Date(user.otp_blocked_until);
+                if (blockedTime > new Date()) {
+                    const remainingMins = Math.ceil((blockedTime.getTime() - Date.now()) / 60000);
+                    return res.status(429).json({ 
+                        message: `Tài khoản đang bị tạm khóa tính năng này. Vui lòng thử lại sau ${remainingMins} phút.` 
+                    });
+                }
+            }
+
+            const resetUser = await findUserByResetToken(email, token);
+            if (!resetUser) {
+                await incrementOtpAttempts(email);
+                const updatedUser = await findUserByEmail(email);
+                const attempts = updatedUser.otp_attempts || 0;
+                
+                if (attempts >= 5) {
+                    await blockUserOtp(email, 15);
+                    return res.status(400).json({ 
+                        message: 'Tài khoản bị tạm khóa 15 phút do nhập sai mã OTP quá 5 lần. Vui lòng yêu cầu mã OTP mới.' 
+                    });
+                }
+                
+                return res.status(400).json({ 
+                    message: `Mã OTP không hợp lệ hoặc đã hết hạn. Còn lại ${5 - attempts} lượt nhập.` 
+                });
+            }
+
+            // Reset attempts on successful reset
+            await resetOtpAttempts(email);
 
             const hashedPassword = await bcrypt.hash(newPassword, 10);
             await updateUserPassword(email, hashedPassword);

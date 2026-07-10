@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticateToken, authorizeRoles, ROLES } = require('../middleware/auth');
 const voucherController = require('../controllers/voucherController');
 
+router.get('/public', voucherController.getPublicVouchers);
 router.post('/apply', authenticateToken, voucherController.applyVoucher);
 
 // Admin CRUD routes

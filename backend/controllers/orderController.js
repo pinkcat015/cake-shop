@@ -55,12 +55,20 @@ const createOrderFromCart = async (req, res) => {
     } catch (vErr) {
       await connection.rollback();
       connection.release();
-      // BE4: Catch VOUCHER_EXPIRED and return 400 instead of 500
+      // BE4: Catch Voucher validation errors and return 400 instead of 500
       if (vErr.message === 'VOUCHER_EXPIRED') {
         return res.status(400).json({ message: 'Mã voucher đã hết hạn' });
       }
       if (vErr.message === 'VOUCHER_NOT_FOUND') {
         return res.status(400).json({ message: 'Mã voucher không tồn tại' });
+      }
+      if (vErr.message === 'VOUCHER_LIMIT_EXCEEDED') {
+        return res.status(400).json({ message: 'Mã voucher đã đạt giới hạn số lần sử dụng tối đa' });
+      }
+      if (vErr.message === 'VOUCHER_MIN_ORDER_NOT_MET') {
+        return res.status(400).json({ 
+          message: `Đơn hàng chưa đạt giá trị tối thiểu ${vErr.details.min_order_value}đ để áp dụng voucher này (giá trị hiện tại: ${vErr.details.actual_value}đ)` 
+        });
       }
       throw vErr;
     }
@@ -126,6 +134,14 @@ const createOrderFromCart = async (req, res) => {
       await connection.query(
         'UPDATE Inventory SET quantity = quantity - ? WHERE product_id = ?',
         [item.quantity, item.product_id]
+      );
+    }
+
+    if (voucher) {
+      // Tăng số lần sử dụng của Voucher
+      await connection.query(
+        'UPDATE `Voucher` SET used_count = used_count + 1 WHERE voucher_id = ?',
+        [voucher.voucher_id]
       );
     }
 
@@ -238,6 +254,10 @@ const requestCancelOrder = async (req, res) => {
         for (const detail of details) {
           await connection.query('UPDATE Inventory SET quantity = quantity + ? WHERE product_id = ?', [detail.quantity, detail.product_id]);
         }
+        // Hoàn trả số lần dùng Voucher
+        if (order.voucher_id) {
+          await connection.query('UPDATE `Voucher` SET used_count = GREATEST(0, used_count - 1) WHERE voucher_id = ?', [order.voucher_id]);
+        }
         await connection.commit();
       } catch (txErr) {
         await connection.rollback();
@@ -293,6 +313,10 @@ const approveCancelOrder = async (req, res) => {
       const [details] = await connection.query('SELECT product_id, quantity FROM `OrderDetail` WHERE order_id = ?', [orderId]);
       for (const detail of details) {
         await connection.query('UPDATE Inventory SET quantity = quantity + ? WHERE product_id = ?', [detail.quantity, detail.product_id]);
+      }
+      // Hoàn trả số lần dùng Voucher
+      if (order.voucher_id) {
+        await connection.query('UPDATE `Voucher` SET used_count = GREATEST(0, used_count - 1) WHERE voucher_id = ?', [order.voucher_id]);
       }
       await connection.commit();
     } catch (txErr) {

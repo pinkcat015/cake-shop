@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import api from '../../api/api';
 import Navbar from '../../components/Navbar';
 import { MapPin, Phone, Clock, Navigation, Map, Star, CheckCircle, XCircle } from 'lucide-react';
 
 const StoreDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [store, setStore] = useState(null);
   const [loading, setLoading] = useState(true);
 

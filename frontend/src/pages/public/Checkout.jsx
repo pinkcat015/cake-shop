@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import api from '../../api/api';
 import Navbar from '../../components/Navbar';
 import { useNavigate } from 'react-router-dom';
-import { getActivePromoForProduct, getScheduledPromoForProduct, getEffectivePrice } from '../../utils/promoUtils';
+import { getActivePromoForProduct, getEffectivePrice } from '../../utils/promoUtils';
 
 const Checkout = () => {
   const [items, setItems] = useState([]);
@@ -20,6 +20,7 @@ const Checkout = () => {
   const [voucherResult, setVoucherResult] = useState(null);
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [publicVouchers, setPublicVouchers] = useState([]);
   const navigate = useNavigate();
 
   const loadCart = useCallback(async () => {
@@ -86,6 +87,12 @@ const Checkout = () => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length, loading]);
+
+  useEffect(() => {
+    api.get('/vouchers/public')
+      .then(res => setPublicVouchers(res.data.vouchers || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (stores.length === 0) {
@@ -371,6 +378,36 @@ const Checkout = () => {
 
                 <div style={styles.sectionMiniBlock}>
                   <h4 style={styles.miniTitle}>Voucher</h4>
+
+                  {/* Public voucher chips */}
+                  {publicVouchers.length > 0 && (
+                    <div style={styles.publicChipsWrap}>
+                      <p style={styles.publicChipsLabel}>Ưu đãi đang có:</p>
+                      <div style={styles.publicChipsRow}>
+                        {publicVouchers.map(v => (
+                          <button
+                            key={v.voucher_id}
+                            type="button"
+                            onClick={async () => {
+                              setVoucherCode(v.code);
+                              setVoucherLoading(true);
+                              try { await refreshPricing(v.code); } finally { setVoucherLoading(false); }
+                            }}
+                            style={{
+                              ...styles.publicChip,
+                              borderColor: voucherCode === v.code ? '#6b1111' : '#e5c7c7',
+                              backgroundColor: voucherCode === v.code ? '#fff5f5' : '#fff',
+                              color: voucherCode === v.code ? '#6b1111' : '#444',
+                              fontWeight: voucherCode === v.code ? '700' : '500',
+                            }}
+                          >
+                            🏷️ {v.code} &nbsp;<span style={{ color: '#6b1111', fontWeight: 700 }}>−{v.discount}%</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div style={styles.voucherRow}>
                     <input
                       value={voucherCode}
@@ -508,7 +545,24 @@ const styles = {
   totalRow: { borderTop: '1px solid #eee', paddingTop: '20px', marginTop: '10px', color: '#6b1111', fontWeight: '700', fontSize: '1.3rem' },
   
   orderSubmitBtn: { marginTop: '25px', width: '100%', padding: '18px', backgroundColor: '#6b1111', color: '#fff', border: 'none', fontWeight: '700', letterSpacing: '2px', fontSize: '0.95rem', cursor: 'pointer', transition: '0.3s' },
-  statusBox: { textAlign: 'center', padding: '120px 0', fontSize: '1.2rem', fontStyle: 'italic', color: '#888' }
+  statusBox: { textAlign: 'center', padding: '120px 0', fontSize: '1.2rem', fontStyle: 'italic', color: '#888' },
+
+  publicChipsWrap: { marginBottom: '12px' },
+  publicChipsLabel: { fontSize: '12px', color: '#888', margin: '0 0 8px 0', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  publicChipsRow: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
+  publicChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '6px 14px',
+    border: '1px solid #e5c7c7',
+    borderRadius: '20px',
+    fontSize: '13px',
+    cursor: 'pointer',
+    background: '#fff',
+    transition: 'all 0.2s ease',
+    fontFamily: 'inherit',
+  },
 };
 
 export default Checkout;

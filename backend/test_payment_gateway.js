@@ -42,16 +42,16 @@ const db = require('./config/db');
     const token = loginData.token;
     console.log(`- Đăng nhập thành công. Token: ${token.substring(0, 15)}...`);
 
-    // 4. Lấy danh sách sản phẩm để thêm vào giỏ
-    let prodRes = await fetch(`${base}/products`);
-    const products = await prodRes.json();
-    const prodList = Array.isArray(products) ? products : (products.products || []);
-    if (prodList.length === 0) {
-      throw new Error('Không có sản phẩm nào trong DB để test');
+    // 4. Chọn sản phẩm mẫu: ưu tiên sản phẩm còn hàng trong kho (quantity > 3)
+    const [stockRows] = await db.query(
+      'SELECT p.product_id, p.name, p.price, i.quantity FROM Product p JOIN Inventory i ON p.product_id = i.product_id WHERE i.quantity > 3 ORDER BY i.quantity DESC LIMIT 1'
+    );
+    if (!stockRows.length) {
+      throw new Error('Cơ sở dữ liệu không có sản phẩm nào còn hàng để test');
     }
-    const product = prodList[0];
-    const productId = product.product_id || product.id;
-    console.log(`- Sử dụng sản phẩm ID: ${productId} (${product.name})`);
+    const product = stockRows[0];
+    const productId = product.product_id;
+    console.log(`- Sử dụng sản phẩm ID: ${productId} (${product.name}, Còn: ${product.quantity} cái)`);
 
     // 5. Thêm vào giỏ hàng
     let addCartRes = await fetch(`${base}/cart/add`, {
@@ -116,12 +116,52 @@ const db = require('./config/db');
     const [orderRowBefore] = await db.query('SELECT status FROM `Order` WHERE order_id = ?', [orderId]);
     console.log(`  Trạng thái đơn hàng trong DB trước xác nhận: ${orderRowBefore[0]?.status} (Expected: PENDING)`);
 
+    // Get Admin Token for confirmation
+    let adminToken = token;
+    try {
+      let adminLoginRes = await fetch(`${base}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'admin_demo', password: 'admin123' })
+      });
+      const adminLoginData = await adminLoginRes.json();
+      if (adminLoginRes.status === 200 && adminLoginData.token) {
+        adminToken = adminLoginData.token;
+      } else {
+        const adminUsername = `admin_pay_${randomSuffix}`;
+        await fetch(`${base}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: adminUsername,
+            password: 'admin_password',
+            email: `admin_pay_${randomSuffix}@example.com`,
+            role_name: 'admin'
+          })
+        });
+        const [admRows] = await db.query('SELECT verification_token FROM User WHERE username = ?', [adminUsername]);
+        const admToken = admRows[0]?.verification_token;
+        await fetch(`${base}/auth/verify-email?token=${admToken}`);
+        let admLogin = await fetch(`${base}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: adminUsername, password: 'admin_password' })
+        });
+        const admLoginData = await admLogin.json();
+        if (admLoginData.token) {
+          adminToken = admLoginData.token;
+        }
+      }
+    } catch (e) {
+      console.error('Lỗi chuẩn bị admin token:', e);
+    }
+
     // 9. Giả lập xác nhận thanh toán qua API confirmPayment
     let confirmRes = await fetch(`${base}/payments/confirm`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${adminToken}`
       },
       body: JSON.stringify({ order_id: orderId })
     });

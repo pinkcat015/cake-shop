@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import api, { toAssetUrl } from '../../api/api';
 import Navbar from '../../components/Navbar';
-import { Plus, Trash2, Edit2, Ticket, Check, X, Calendar, Percent, Clock, Tag } from 'lucide-react';
+import { Plus, Trash2, Edit2, Ticket, Check, X, Calendar, Percent, Clock, Tag, Globe, Lock } from 'lucide-react';
 
 const AdminVouchers = () => {
   const [activeTab, setActiveTab] = useState('vouchers'); // 'vouchers' | 'promotions'
@@ -20,6 +20,9 @@ const AdminVouchers = () => {
   const [voucherCode, setVoucherCode] = useState('');
   const [voucherDiscount, setVoucherDiscount] = useState('');
   const [voucherExpiryDate, setVoucherExpiryDate] = useState('');
+  const [voucherIsPublic, setVoucherIsPublic] = useState(false);
+  const [voucherUsageLimit, setVoucherUsageLimit] = useState('');
+  const [voucherMinOrderValue, setVoucherMinOrderValue] = useState('');
 
   // Promotion Form State
   const [isPromoEditing, setIsPromoEditing] = useState(false);
@@ -99,14 +102,20 @@ const AdminVouchers = () => {
         await api.put(`/vouchers/${voucherEditId}`, {
           code: voucherCode.trim().toUpperCase(),
           discount: Number(voucherDiscount),
-          expiry_date: formattedExpiry
+          expiry_date: formattedExpiry,
+          is_public: voucherIsPublic,
+          usage_limit: voucherUsageLimit === '' ? null : Number(voucherUsageLimit),
+          min_order_value: voucherMinOrderValue === '' ? 0 : Number(voucherMinOrderValue),
         });
         setSuccess('Cập nhật voucher thành công!');
       } else {
         await api.post('/vouchers', {
           code: voucherCode.trim().toUpperCase(),
           discount: Number(voucherDiscount),
-          expiry_date: formattedExpiry
+          expiry_date: formattedExpiry,
+          is_public: voucherIsPublic,
+          usage_limit: voucherUsageLimit === '' ? null : Number(voucherUsageLimit),
+          min_order_value: voucherMinOrderValue === '' ? 0 : Number(voucherMinOrderValue),
         });
         setSuccess('Tạo voucher mới thành công!');
       }
@@ -124,6 +133,9 @@ const AdminVouchers = () => {
     setVoucherEditId(v.voucher_id);
     setVoucherCode(v.code);
     setVoucherDiscount(v.discount);
+    setVoucherIsPublic(!!v.is_public);
+    setVoucherUsageLimit(v.usage_limit !== null && v.usage_limit !== undefined ? v.usage_limit : '');
+    setVoucherMinOrderValue(v.min_order_value !== null && v.min_order_value !== undefined ? v.min_order_value : '');
     if (v.expiry_date) {
       setVoucherExpiryDate(new Date(v.expiry_date).toISOString().split('T')[0]);
     } else {
@@ -151,6 +163,9 @@ const AdminVouchers = () => {
     setVoucherCode('');
     setVoucherDiscount('');
     setVoucherExpiryDate('');
+    setVoucherIsPublic(false);
+    setVoucherUsageLimit('');
+    setVoucherMinOrderValue('');
   };
 
   // PROMO FORM SUBMIT
@@ -348,9 +363,26 @@ const AdminVouchers = () => {
                         <div style={styles.voucherDetails}>
                           <div style={styles.voucherCode}>{v.code}</div>
                           <div style={styles.voucherDiscount}>Giảm giá: {Number(v.discount)}%</div>
+                          {v.min_order_value > 0 && (
+                            <div style={{ fontSize: '12px', color: '#666', marginTop: 2 }}>
+                              Đơn tối thiểu: <strong>{Number(v.min_order_value).toLocaleString()}đ</strong>
+                            </div>
+                          )}
+                          {v.usage_limit !== null && v.usage_limit !== undefined && (
+                            <div style={{ fontSize: '12px', color: '#666', marginTop: 2 }}>
+                              Đã dùng: <strong>{v.used_count || 0}</strong> / <strong>{v.usage_limit}</strong> lượt
+                            </div>
+                          )}
                           <div style={styles.voucherExpiry}>
                             Hạn dùng: <span style={expired ? styles.expiredText : {}}>{formatDate(v.expiry_date)}</span>
                             {expired && <span style={styles.expiredBadge}>Hết hạn</span>}
+                          </div>
+                          <div style={{ marginTop: 6 }}>
+                            {v.is_public ? (
+                              <span style={styles.publicBadge}><Globe size={11} style={{ marginRight: 4 }} />Công khai</span>
+                            ) : (
+                              <span style={styles.privateBadge}><Lock size={11} style={{ marginRight: 4 }} />Riêng tư</span>
+                            )}
                           </div>
                         </div>
                         <div style={styles.actions}>
@@ -417,6 +449,28 @@ const AdminVouchers = () => {
                       style={styles.input}
                     />
                   </div>
+                </div>
+
+                {/* IS_PUBLIC TOGGLE */}
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Hiển thị cho khách hàng</label>
+                  <label style={styles.toggleRow}>
+                    <div
+                      onClick={() => setVoucherIsPublic(v => !v)}
+                      style={{
+                        ...styles.toggleTrack,
+                        backgroundColor: voucherIsPublic ? '#16a34a' : '#d1d5db',
+                      }}
+                    >
+                      <div style={{
+                        ...styles.toggleThumb,
+                        transform: voucherIsPublic ? 'translateX(20px)' : 'translateX(0px)',
+                      }} />
+                    </div>
+                    <span style={{ fontSize: '13px', color: voucherIsPublic ? '#16a34a' : '#6b7280', fontWeight: 600 }}>
+                      {voucherIsPublic ? '✓ Công khai — hiển thị tại trang Checkout' : 'Riêng tư — chỉ dùng khi biết mã'}
+                    </span>
+                  </label>
                 </div>
 
                 <div style={styles.formActions}>
@@ -1022,7 +1076,56 @@ const styles = {
     borderRadius: '4px',
     marginRight: '10px',
     backgroundColor: '#eee'
-  }
+  },
+  publicBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    color: '#16a34a',
+    border: '1px solid #bbf7d0',
+    padding: '2px 10px',
+    borderRadius: '20px',
+    fontSize: '11px',
+    fontWeight: '700',
+  },
+  privateBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    color: '#6b7280',
+    border: '1px solid #e5e7eb',
+    padding: '2px 10px',
+    borderRadius: '20px',
+    fontSize: '11px',
+    fontWeight: '700',
+  },
+  toggleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    cursor: 'pointer',
+    userSelect: 'none',
+  },
+  toggleTrack: {
+    width: '44px',
+    height: '24px',
+    borderRadius: '12px',
+    position: 'relative',
+    cursor: 'pointer',
+    transition: 'background-color 0.25s ease',
+    flexShrink: 0,
+  },
+  toggleThumb: {
+    position: 'absolute',
+    top: '3px',
+    left: '3px',
+    width: '18px',
+    height: '18px',
+    borderRadius: '50%',
+    backgroundColor: '#fff',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+    transition: 'transform 0.25s ease',
+  },
 };
 
 export default AdminVouchers;

@@ -18,7 +18,7 @@ const ForgotPassword = () => {
     setMessage('');
 
     try {
-      const res = await api.post('/auth/forgot-password', { email });
+      await api.post('/auth/forgot-password', { email });
       navigate('/forgot-success', { state: { email } });
     } catch (err) {
       setError(err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');

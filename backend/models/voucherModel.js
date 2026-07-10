@@ -5,7 +5,7 @@ const roundMoney = (value) => Number(Number(value || 0).toFixed(2));
 const getVoucherByCode = async (code) => {
   if (!code) return null;
   const [rows] = await db.query(
-    'SELECT voucher_id, code, discount, expiry_date FROM `Voucher` WHERE UPPER(code) = UPPER(?) LIMIT 1',
+    'SELECT voucher_id, code, discount, expiry_date, is_public, usage_limit, used_count, min_order_value FROM `Voucher` WHERE UPPER(code) = UPPER(?) LIMIT 1',
     [String(code).trim()]
   );
   return rows[0] || null;
@@ -110,7 +110,23 @@ const calculateCartPricing = async (items, voucherCode = null) => {
       throw error;
     }
 
+    // 1. Kiểm tra giới hạn số lần sử dụng
+    if (voucher.usage_limit !== null && voucher.usage_limit !== undefined && voucher.used_count >= voucher.usage_limit) {
+      const error = new Error('VOUCHER_LIMIT_EXCEEDED');
+      error.details = { code: voucher.code };
+      throw error;
+    }
+
     const afterPromotion = Math.max(subtotal - promotionDiscount, 0);
+
+    // 2. Kiểm tra điều kiện đơn hàng tối thiểu
+    const minOrderVal = Number(voucher.min_order_value || 0);
+    if (afterPromotion < minOrderVal) {
+      const error = new Error('VOUCHER_MIN_ORDER_NOT_MET');
+      error.details = { code: voucher.code, min_order_value: minOrderVal, actual_value: afterPromotion };
+      throw error;
+    }
+
     voucherDiscount = roundMoney((afterPromotion * Number(voucher.discount || 0)) / 100);
   }
 
@@ -133,20 +149,32 @@ const getAllVouchers = async () => {
   return rows;
 };
 
-const createVoucher = async (code, discount, expiryDate) => {
-  const [result] = await db.query(
-    'INSERT INTO Voucher (code, discount, expiry_date) VALUES (?, ?, ?)',
-    [String(code).trim().toUpperCase(), discount, expiryDate || null]
+const getPublicActiveVouchers = async () => {
+  const [rows] = await db.query(
+    `SELECT voucher_id, code, discount, expiry_date, usage_limit, used_count, min_order_value
+     FROM Voucher
+     WHERE is_public = 1
+       AND (expiry_date IS NULL OR expiry_date >= CURDATE())
+       AND (usage_limit IS NULL OR used_count < usage_limit)
+     ORDER BY discount DESC, voucher_id DESC`
   );
-  return { voucher_id: result.insertId, code, discount, expiry_date: expiryDate };
+  return rows;
 };
 
-const updateVoucher = async (id, code, discount, expiryDate) => {
-  await db.query(
-    'UPDATE Voucher SET code = ?, discount = ?, expiry_date = ? WHERE voucher_id = ?',
-    [String(code).trim().toUpperCase(), discount, expiryDate || null, id]
+const createVoucher = async (code, discount, expiryDate, isPublic = false, usageLimit = null, minOrderValue = 0) => {
+  const [result] = await db.query(
+    'INSERT INTO Voucher (code, discount, expiry_date, is_public, usage_limit, min_order_value) VALUES (?, ?, ?, ?, ?, ?)',
+    [String(code).trim().toUpperCase(), discount, expiryDate || null, isPublic ? 1 : 0, usageLimit, minOrderValue]
   );
-  return { voucher_id: id, code, discount, expiry_date: expiryDate };
+  return { voucher_id: result.insertId, code, discount, expiry_date: expiryDate, is_public: isPublic, usage_limit: usageLimit, min_order_value: minOrderValue };
+};
+
+const updateVoucher = async (id, code, discount, expiryDate, isPublic = false, usageLimit = null, minOrderValue = 0) => {
+  await db.query(
+    'UPDATE Voucher SET code = ?, discount = ?, expiry_date = ?, is_public = ?, usage_limit = ?, min_order_value = ? WHERE voucher_id = ?',
+    [String(code).trim().toUpperCase(), discount, expiryDate || null, isPublic ? 1 : 0, usageLimit, minOrderValue, id]
+  );
+  return { voucher_id: id, code, discount, expiry_date: expiryDate, is_public: isPublic, usage_limit: usageLimit, min_order_value: minOrderValue };
 };
 
 const deleteVoucher = async (id) => {
@@ -158,6 +186,7 @@ module.exports = {
   getActivePromotionsForProducts,
   calculateCartPricing,
   getAllVouchers,
+  getPublicActiveVouchers,
   createVoucher,
   updateVoucher,
   deleteVoucher
