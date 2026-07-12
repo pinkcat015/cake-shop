@@ -202,6 +202,11 @@ const removeProduct = async (req, res) => {
         await deleteProduct(req.params.id);
         res.json({ message: 'Product deleted successfully' });
     } catch (error) {
+        if (error.code === 'ER_ROW_IS_REFERENCED_2' || (error.message && error.message.includes('foreign key constraint fails'))) {
+            return res.status(400).json({ 
+                message: 'Sản phẩm này đã phát sinh đơn hàng trong hệ thống. Để bảo toàn lịch sử giao dịch và doanh thu, bạn không thể xóa sản phẩm này. Hãy chỉnh sửa số lượng tồn kho về 0 hoặc gỡ sản phẩm khỏi danh sách bán.' 
+            });
+        }
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };

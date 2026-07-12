@@ -132,9 +132,15 @@ const createOrUpdateInventory = async (productId, quantity) => {
 };
 
 const deleteProduct = async (productId) => {
-    // Xoa ton kho truoc de khong bi loi khoa ngoai.
-    await db.query('DELETE FROM Inventory WHERE product_id = ?', [productId]);
-    await db.query('DELETE FROM Product WHERE product_id = ?', [productId]);
+    // Xóa các liên kết trong bảng không ảnh hưởng đến lịch sử thanh toán
+    await db.query('DELETE FROM `NutritionFact` WHERE product_id = ?', [productId]);
+    await db.query('DELETE FROM `CartItem` WHERE product_id = ?', [productId]);
+    await db.query('DELETE FROM `ProductPromotion` WHERE product_id = ?', [productId]);
+    await db.query('DELETE FROM `Review` WHERE product_id = ?', [productId]);
+    await db.query('DELETE FROM `Inventory` WHERE product_id = ?', [productId]);
+    
+    // Xóa sản phẩm
+    await db.query('DELETE FROM `Product` WHERE product_id = ?', [productId]);
 };
 
 module.exports = {
