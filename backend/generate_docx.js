@@ -20,7 +20,7 @@ const {
 
 // Đường dẫn file nguồn và file đích
 const srcPath = 'C:\\Users\\pinkc\\.gemini\\antigravity\\brain\\e598e4dd-df4c-47c8-a32e-9dd7d3e55020\\project_report.md';
-const destPath = 'C:\\Users\\pinkc\\Downloads\\Scarlett_Cake_Shop_Bao_cao_formal.docx';
+const destPath = 'C:\\Users\\pinkc\\Downloads\\Scarlett_Cake_Shop_Bao_cao_chi_tiet_formal.docx';
 
 console.log('--- KHỞI ĐỘNG CHUYỂN ĐỔI BÁO CÁO SANG FILE WORD (.DOCX) ---');
 console.log('Nguồn:', srcPath);
