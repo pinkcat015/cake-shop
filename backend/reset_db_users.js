@@ -36,13 +36,13 @@ async function run() {
         console.log('4. Tạo tài khoản Admin demo...');
         const [adminResult] = await db.query(
             'INSERT INTO User (username, password, email, role_id, is_verified) VALUES (?, ?, ?, ?, ?)',
-            ['admin_demo', adminHash, 'admin@example.com', roleMap['admin'], 1]
+            ['admin_demo', adminHash, 'pinkcatt015@gmail.com', roleMap['admin'], 1]
         );
         
         console.log('5. Tạo tài khoản Employee demo...');
         const [employeeResult] = await db.query(
             'INSERT INTO User (username, password, email, role_id, is_verified) VALUES (?, ?, ?, ?, ?)',
-            ['employee_demo', employeeHash, 'employee@example.com', roleMap['employee'], 1]
+            ['employee_demo', employeeHash, 'minhtrangmeomeo123@gmail.com', roleMap['employee'], 1]
         );
         await db.query('INSERT INTO Customer (user_id, name, phone, address) VALUES (?, ?, ?, ?)', 
             [employeeResult.insertId, 'Employee Demo', '0987654321', 'Scarlett Bakery Central Branch']);
@@ -50,7 +50,7 @@ async function run() {
         console.log('6. Tạo tài khoản Customer demo...');
         const [customerResult] = await db.query(
             'INSERT INTO User (username, password, email, role_id, is_verified) VALUES (?, ?, ?, ?, ?)',
-            ['customer_demo', customerHash, 'customer@example.com', roleMap['customer'], 1]
+            ['customer_demo', customerHash, 'truongminhtrang012@gmail.com', roleMap['customer'], 1]
         );
         await db.query('INSERT INTO Customer (user_id, name, phone, address) VALUES (?, ?, ?, ?)', 
             [customerResult.insertId, 'Khách Hàng Demo', '0123456789', '123 Hai Bà Trưng, Quận 1, TPHCM']);
