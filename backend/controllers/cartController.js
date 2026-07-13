@@ -15,6 +15,19 @@ const addToCart = async (req, res) => {
     const product = await productModel.getProductById(product_id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
 
+    const existingItem = await cartModel.findCartItem(cart.cart_id, product_id);
+    const existingQty = existingItem ? Number(existingItem.quantity) : 0;
+    const nextQty = existingQty + Number(quantity);
+
+    if (nextQty > product.quantity) {
+      if (product.quantity <= 0) {
+        return res.status(400).json({ message: `Sản phẩm "${product.name}" đã hết hàng.` });
+      }
+      return res.status(400).json({ 
+        message: `Không thể thêm. Trong giỏ đã có ${existingQty} sản phẩm. Kho chỉ còn ${product.quantity} sản phẩm.` 
+      });
+    }
+
     const added = await cartModel.addOrUpdateCartItem(cart.cart_id, product_id, Number(quantity), product.price);
     const full = await cartModel.getCartWithItems(cart.cart_id);
     return res.json({ cart: full.cart, items: full.items });
@@ -45,6 +58,15 @@ const updateCart = async (req, res) => {
 
     const cart = await cartModel.findCartByUserId(userId);
     if (!cart) return res.status(404).json({ message: 'Cart not found' });
+
+    const product = await productModel.getProductById(product_id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    if (Number(quantity) > product.quantity) {
+      return res.status(400).json({ 
+        message: `Số lượng yêu cầu (${quantity}) vượt quá tồn kho hiện tại của sản phẩm (${product.quantity} sản phẩm).` 
+      });
+    }
 
     if (Number(quantity) <= 0) {
       await cartModel.removeCartItem(cart.cart_id, product_id);

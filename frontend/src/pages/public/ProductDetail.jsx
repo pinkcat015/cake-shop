@@ -217,8 +217,12 @@ const ProductDetail = () => {
                 {error && <div style={{color: 'red', marginTop: 8}}>{error}</div>}
 
                 <button
-                  style={styles.mainBtn}
-                  disabled={adding}
+                  style={{
+                    ...styles.mainBtn,
+                    backgroundColor: Number(product.quantity ?? 0) <= 0 ? '#9ca3af' : '#6B1111',
+                    cursor: Number(product.quantity ?? 0) <= 0 ? 'not-allowed' : 'pointer'
+                  }}
+                  disabled={adding || Number(product.quantity ?? 0) <= 0}
                   onClick={async (event) => {
                   try {
                     setError('');
@@ -252,7 +256,7 @@ const ProductDetail = () => {
                   } finally {
                     setAdding(false);
                   }
-                }}>{adding ? 'ĐANG THÊM...' : 'THÊM VÀO GIỎ HÀNG'}</button>
+                }}>{Number(product.quantity ?? 0) <= 0 ? 'HẾT HÀNG' : (adding ? 'ĐANG THÊM...' : 'THÊM VÀO GIỎ HÀNG')}</button>
                 {successMessage && <div style={styles.successText}>{successMessage}</div>}
                 <Link to="/products" style={styles.secondaryLink}>Quay lại thực đơn</Link>
               </div>

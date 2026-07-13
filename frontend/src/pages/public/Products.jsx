@@ -257,10 +257,17 @@ const Products = () => {
                             setTimeout(() => setMsgMap((m) => ({ ...m, [item.product_id]: '' })), 2200);
                           }
                         }}
-                        disabled={Boolean(addingMap[item.product_id])}
-                        style={{ padding: '8px 12px', backgroundColor: '#6b1111', color: '#fff', border: 'none', cursor: 'pointer', fontWeight:700 }}
+                        disabled={Boolean(addingMap[item.product_id]) || Number(item.quantity ?? 0) <= 0}
+                        style={{ 
+                          padding: '8px 12px', 
+                          backgroundColor: Number(item.quantity ?? 0) <= 0 ? '#9ca3af' : '#6b1111', 
+                          color: '#fff', 
+                          border: 'none', 
+                          cursor: Number(item.quantity ?? 0) <= 0 ? 'not-allowed' : 'pointer', 
+                          fontWeight: 700 
+                        }}
                       >
-                        {addingMap[item.product_id] ? 'ĐANG...' : 'THÊM'}
+                        {Number(item.quantity ?? 0) <= 0 ? 'HẾT' : (addingMap[item.product_id] ? 'ĐANG...' : 'THÊM')}
                       </button>
                     </div>
                     {msgMap[item.product_id] && <div style={{marginTop:6, fontSize:12, color: msgMap[item.product_id].startsWith('Đã') ? '#2f7a2f' : '#a12f2f'}}>{msgMap[item.product_id]}</div>}
