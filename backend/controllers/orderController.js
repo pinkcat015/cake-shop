@@ -199,6 +199,17 @@ const updateOrderStatus = async (req, res) => {
     if (!ALLOWED_STATUSES.includes(status)) {
       return res.status(400).json({ message: `Trạng thái không hợp lệ. Cho phép: ${ALLOWED_STATUSES.join(', ')}` });
     }
+
+    const order = await orderModel.getOrderById(id);
+    if (!order) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    // Chặn không cho hoàn tác nếu đơn hàng đã ở trạng thái DELIVERED
+    if (order.status === 'DELIVERED' && status !== 'DELIVERED') {
+      return res.status(400).json({ message: 'Đơn hàng đã được giao thành công (DELIVERED). Trạng thái này là cuối cùng và không thể hoàn tác hoặc thay đổi khác.' });
+    }
+
     await orderModel.updateOrderStatus(id, status);
     const updated = await orderModel.getOrderById(id);
     res.json({ order: updated });
